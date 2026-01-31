@@ -1,0 +1,11 @@
+streamlit==1.31.1
+llama-cpp-python==0.2.20
+numpy
+pypdf
+faiss-cpu
+psutil
+
+# RAG stack (PINNED)
+huggingface-hub==0.19.4
+transformers==4.38.2
+sentence-transformers==2.6.1

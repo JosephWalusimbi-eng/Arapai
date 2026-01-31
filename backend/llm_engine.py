@@ -1,0 +1,59 @@
+import os
+import threading
+import psutil
+from llama_cpp import Llama
+
+# ---------------- RAM DETECTION ----------------
+def get_available_ram_gb():
+    return psutil.virtual_memory().available / (1024 ** 3)
+
+# ---------------- MODEL SELECTION ----------------
+def select_model_path():
+    ram = get_available_ram_gb()
+
+    if ram >= 8 and os.path.exists("models/advanced/model.gguf"):
+        print("Using ADVANCED model")
+        return "models/advanced/model.gguf"
+
+    if ram >= 4 and os.path.exists("models/standard/model.gguf"):
+        print("Using STANDARD model")
+        return "models/standard/model.gguf"
+
+    if os.path.exists("models/lite/model.gguf"):
+        print("Using LITE model")
+        return "models/lite/model.gguf"
+
+    raise RuntimeError("No compatible model found.")
+
+MODEL_PATH = select_model_path()
+
+# ---------------- LOAD MODEL ONCE ----------------
+llm = Llama(
+    model_path=MODEL_PATH,
+    n_ctx=2048,
+    n_threads=os.cpu_count() or 4,
+    n_batch=256,
+    use_mmap=True
+)
+
+_ready = False
+_lock = threading.Lock()
+
+# ---------------- WARM-UP ----------------
+def warm_up():
+    global _ready
+    with _lock:
+        if not _ready:
+            llm("Say OK.", max_tokens=2)
+            _ready = True
+
+# ---------------- INFERENCE ----------------
+def generate(prompt, max_tokens=256):
+    result = llm(
+        prompt,
+        max_tokens=max_tokens,
+        temperature=0.6,
+        top_p=0.9,
+        stop=["User:", "Assistant:"]
+    )
+    return result["choices"][0]["text"].strip()

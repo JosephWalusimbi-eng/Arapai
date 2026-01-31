@@ -1,0 +1,77 @@
+Download the lite model:  https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf
+
+Standard model: 
+Download:
+huggingface-cli download Qwen/Qwen2.5-3B-Instruct-GGUF qwen2.5-3b-instruct-q5_k_m.gguf --local-dir . --local-dir-use-symlinks False
+
+Advanced Model: https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_K_M.gguf
+
+For Arapai:
+Never run pip install -U
+Always use a pinned requirements.txt
+Treat the venv as part of the product
+
+This is how it survives deployment to hundreds of school computers.
+
+
+HOW TO CREATE AND USE THE VENV (CLEAN SETUP)
+Step 1: Create venv
+python -m venv venv
+
+Step 2: Activate venv
+venv\Scripts\activate
+
+
+You should see:
+
+(venv)
+
+Step 3: Install requirements
+pip install -r requirements.txt
+
+Step 4: Run the app
+streamlit run app.py
+
+5. IMPORTANT WINDOWS NOTES (VERY IMPORTANT)
+✔ Python version
+
+Use:
+
+Python 3.10 or 3.11
+
+Avoid: Python 3.12 (can cause issues with llama-cpp)
+
+Check:
+
+python --version
+
+
+llama-cpp-python installation issues
+
+If installation fails:
+
+pip install llama-cpp-python --upgrade --force-reinstall
+
+
+
+if it fails;
+
+Install Visual C++ Build Tools
+
+Download and install:
+👉 https://visualstudio.microsoft.com/visual-cpp-build-tools/
+
+During install, select:
+
+✔ Desktop development with C++
+
+✔ MSVC v143
+
+✔ Windows 10/11 SDK
+
+✔ CMake tools
+
+Restart your PC after installation.
+
+Step B: Re-run install
+pip install llama-cpp-python==0.2.20
