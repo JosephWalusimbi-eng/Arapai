@@ -23,7 +23,13 @@ def select_model_path():
         print("Using LITE model")
         return "models/lite/model.gguf"
 
-    raise RuntimeError("No compatible model found.")
+    raise RuntimeError(
+        "No compatible model found. Place a GGUF model file at one of:\n"
+        "  • models/lite/model.gguf (any RAM)\n"
+        "  • models/standard/model.gguf (4+ GB free RAM)\n"
+        "  • models/advanced/model.gguf (8+ GB free RAM)\n"
+        "Download a GGUF model (e.g. TinyLlama, Phi-2, or Llama from Hugging Face) and put it in the right folder."
+    )
 
 MODEL_PATH = select_model_path()
 

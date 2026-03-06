@@ -23,7 +23,12 @@ def _load_resources():
                 "RAG index not found. Run ingestion before using RAG."
             )
 
-        _index = faiss.read_index(INDEX_PATH)
+        try:
+            _index = faiss.read_index(INDEX_PATH)
+        except RuntimeError as e:
+            raise FileNotFoundError(
+                "RAG index is missing or invalid (e.g. empty). Put PDFs in data/raw_pdfs or data/rawpdfs and run: python -m ingestion.ingest_pdf"
+            ) from e
 
         with open(TEXT_PATH, "rb") as f:
             _texts = pickle.load(f)
