@@ -33,14 +33,24 @@ def select_model_path():
 
 MODEL_PATH = select_model_path()
 
-# ---------------- LOAD MODEL ONCE ----------------
-llm = Llama(
-    model_path=MODEL_PATH,
-    n_ctx=2048,
-    n_threads=os.cpu_count() or 4,
-    n_batch=256,
-    use_mmap=True
-)
+# ---------------- LOAD MODEL ONCE (preload at import) ----------------
+def _make_llama():
+    common = dict(
+        model_path=MODEL_PATH,
+        n_ctx=2048,
+        n_threads=os.cpu_count() or 4,
+        n_batch=512,  # larger batch = faster prompt eval
+        use_mmap=True,
+    )
+    # Prefer GPU + mlock for speed; fallback if unavailable (e.g. Windows no-GPU)
+    for n_gpu_layers in (-1, 0):
+        for use_mlock in (True, False):
+            try:
+                return Llama(**common, n_gpu_layers=n_gpu_layers, use_mlock=use_mlock)
+            except Exception:
+                continue
+    return Llama(**common, n_gpu_layers=0, use_mlock=False)
+llm = _make_llama()
 
 _ready = False
 _lock = threading.Lock()
@@ -52,6 +62,9 @@ def warm_up():
         if not _ready:
             llm("Say OK.", max_tokens=2)
             _ready = True
+
+# Preload: warm up as soon as the model is loaded so first user request is fast
+warm_up()
 
 # ---------------- INFERENCE ----------------
 def generate(prompt, max_tokens=256):
