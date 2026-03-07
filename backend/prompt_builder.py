@@ -36,7 +36,8 @@ Instruction:
 
     for msg in history:
         role = "User" if msg["role"] == "user" else "Assistant"
-        prompt += f"{role}: {msg['content']}\n"
+        content = (msg.get("content") or "").strip()
+        prompt += f"{role}: {content}\n"
 
     prompt += "Assistant:"
     return prompt

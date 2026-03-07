@@ -20,18 +20,16 @@ def _load_resources():
     if _index is None or _texts is None:
         if not os.path.exists(INDEX_PATH) or not os.path.exists(TEXT_PATH):
             raise FileNotFoundError(
-                "RAG index not found. Run ingestion before using RAG."
+                "RAG index not found. Put PDFs in data/raw_pdfs or data/rawpdfs, "
+                "then run: python -m ingestion.ingest_pdf"
             )
-
-        try:
-            _index = faiss.read_index(INDEX_PATH)
-        except RuntimeError as e:
-            raise FileNotFoundError(
-                "RAG index is missing or invalid (e.g. empty). Put PDFs in data/raw_pdfs or data/rawpdfs and run: python -m ingestion.ingest_pdf"
-            ) from e
-
+        _index = faiss.read_index(INDEX_PATH)
         with open(TEXT_PATH, "rb") as f:
             _texts = pickle.load(f)
+        if not _texts or _index.ntotal == 0:
+            raise FileNotFoundError(
+                "RAG index is empty. Add PDFs and run: python -m ingestion.ingest_pdf"
+            )
 
 
 def retrieve(query, top_k=3):
@@ -39,8 +37,9 @@ def retrieve(query, top_k=3):
     Retrieve top-k relevant text chunks for a query.
     """
     _load_resources()
-
+    top_k = min(top_k, len(_texts))
+    if top_k <= 0:
+        return ""
     query_vec = _embedding_model.encode([query]).astype("float32")
     _, indices = _index.search(query_vec, top_k)
-
-    return "\n".join(_texts[i] for i in indices[0])
+    return "\n".join(_texts[i] for i in indices[0] if i < len(_texts))

@@ -28,7 +28,7 @@ def select_model_path():
         "  • models/lite/model.gguf (any RAM)\n"
         "  • models/standard/model.gguf (4+ GB free RAM)\n"
         "  • models/advanced/model.gguf (8+ GB free RAM)\n"
-        "Download a GGUF model (e.g. TinyLlama, Phi-2, or Llama from Hugging Face) and put it in the right folder."
+        "Download a GGUF model (e.g. TinyLlama, Phi-2, Llama from Hugging Face) and put it in the right folder."
     )
 
 MODEL_PATH = select_model_path()
@@ -39,10 +39,9 @@ def _make_llama():
         model_path=MODEL_PATH,
         n_ctx=2048,
         n_threads=os.cpu_count() or 4,
-        n_batch=512,  # larger batch = faster prompt eval
+        n_batch=512,
         use_mmap=True,
     )
-    # Prefer GPU + mlock for speed; fallback if unavailable (e.g. Windows no-GPU)
     for n_gpu_layers in (-1, 0):
         for use_mlock in (True, False):
             try:
@@ -50,12 +49,12 @@ def _make_llama():
             except Exception:
                 continue
     return Llama(**common, n_gpu_layers=0, use_mlock=False)
+
 llm = _make_llama()
 
 _ready = False
 _lock = threading.Lock()
 
-# ---------------- WARM-UP ----------------
 def warm_up():
     global _ready
     with _lock:
@@ -63,7 +62,6 @@ def warm_up():
             llm("Say OK.", max_tokens=2)
             _ready = True
 
-# Preload: warm up as soon as the model is loaded so first user request is fast
 warm_up()
 
 # ---------------- INFERENCE ----------------
@@ -73,6 +71,10 @@ def generate(prompt, max_tokens=256):
         max_tokens=max_tokens,
         temperature=0.6,
         top_p=0.9,
-        stop=["User:", "Assistant:"]
+        stop=["User:", "Assistant:"],
     )
-    return result["choices"][0]["text"].strip()
+    choices = result.get("choices")
+    if not choices:
+        return ""
+    text = choices[0].get("text") or ""
+    return text.strip()

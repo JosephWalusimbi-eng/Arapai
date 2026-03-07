@@ -35,7 +35,7 @@ st.selectbox(
     options=list(LEVELS.keys()),
     index=list(LEVELS.keys()).index(st.session_state.level),
     key="level",
-    on_change=_request_regen
+    on_change=_request_regen,
 )
 
 use_rag = st.checkbox("Use reference documents (PDFs)", value=False)
@@ -43,47 +43,34 @@ use_rag = st.checkbox("Use reference documents (PDFs)", value=False)
 # ---------- REGENERATE ON LEVEL CHANGE ----------
 if st.session_state.pending_regen and not st.session_state.edit_mode:
     st.session_state.pending_regen = False
-
-    # Only regenerate if we have an existing assistant answer to replace.
     if len(st.session_state.messages) >= 2 and st.session_state.messages[-1]["role"] == "assistant":
-        # Remove last assistant reply, find the last user prompt.
         st.session_state.messages.pop()
         last_user = next(
             (m["content"] for m in reversed(st.session_state.messages) if m["role"] == "user"),
-            None
+            None,
         )
-
         if last_user:
             math_result = solve(last_user)
-
             retrieved_text = None
             if use_rag:
                 try:
                     retrieved_text = retrieve(last_user)
                 except FileNotFoundError:
                     st.warning(
-                        "Reference documents not indexed yet. Put PDFs in **data/raw_pdfs** or **data/rawpdfs**, then run: `python -m ingestion.ingest_pdf`"
+                        "Reference documents not indexed. Put PDFs in **data/raw_pdfs** or **data/rawpdfs**, "
+                        "then run: `python -m ingestion.ingest_pdf`"
                     )
-
-            HISTORY_LIMIT = 6
-            history = st.session_state.messages[-HISTORY_LIMIT:]
-
-            prompt = build_prompt(
-                st.session_state.level,
-                history,
-                retrieved_text
-            )
-
+            history = st.session_state.messages[-6:]
+            prompt = build_prompt(st.session_state.level, history, retrieved_text)
             with st.spinner("Regenerating..."):
                 if math_result is not None:
                     reply = f"The result is {math_result}."
                 else:
-                    reply = generate(prompt)
-
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": reply
-            })
+                    try:
+                        reply = generate(prompt)
+                    except Exception as e:
+                        reply = f"Sorry, the model could not respond: {e!r}"
+            st.session_state.messages.append({"role": "assistant", "content": reply})
 
 # ---------- DISPLAY CHAT ----------
 for i, msg in enumerate(st.session_state.messages):
@@ -133,9 +120,10 @@ if not st.session_state.edit_mode:
         if use_rag:
             try:
                 retrieved_text = retrieve(user_input)
-            except FileNotFoundError as e:
+            except FileNotFoundError:
                 st.warning(
-                    "Reference documents not indexed yet. Put PDFs in **data/raw_pdfs** or **data/rawpdfs**, then run: `python -m ingestion.ingest_pdf`"
+                    "Reference documents not indexed. Put PDFs in **data/raw_pdfs** or **data/rawpdfs**, "
+                    "then run: `python -m ingestion.ingest_pdf`"
                 )
 
         HISTORY_LIMIT = 6
@@ -152,7 +140,10 @@ if not st.session_state.edit_mode:
                 if math_result is not None:
                     reply = f"The result is {math_result}."
                 else:
-                    reply = generate(prompt)
+                    try:
+                        reply = generate(prompt)
+                    except Exception as e:
+                        reply = f"Sorry, the model could not respond: {e!r}"
 
                 st.markdown(reply)
 
