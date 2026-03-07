@@ -71,6 +71,7 @@ if st.session_state.pending_regen and not st.session_state.edit_mode:
                     except Exception as e:
                         reply = f"Sorry, the model could not respond: {e!r}"
             st.session_state.messages.append({"role": "assistant", "content": reply})
+            st.rerun()
 
 # ---------- DISPLAY CHAT ----------
 for i, msg in enumerate(st.session_state.messages):
