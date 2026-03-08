@@ -4,19 +4,22 @@ Offline chatbot for education: local GGUF LLM, optional RAG over your PDFs, and 
 
 ## Quick start
 
-1. **Install** (from project root):
+1. **Install** (from project root, with venv activated):
    ```bash
    pip install -r requirements.txt
    ```
+   This single command installs everything needed to run on any device (CPU). No other pip steps required.
 2. **Add a GGUF model**: put `model.gguf` in one of:
    - `models/lite/` (any RAM)
    - `models/standard/` (4+ GB free RAM)
    - `models/advanced/` (8+ GB free RAM)
-   See `models/README.md` for examples.
+   Prefer **Q4_K_M** or **Q5_K_M** quantized models for speed. See `models/README.md` for exact download links.
 3. **Run**:
    ```bash
    streamlit run app.py
    ```
+
+**Optional: GPU acceleration** – On machines with an NVIDIA GPU and CUDA installed, you can install a GPU-backed `llama-cpp-python` for much faster inference. See `howtorun.txt` section “OPTIONAL: GPU ACCELERATION”.
 
 ## Optional: RAG (reference documents)
 

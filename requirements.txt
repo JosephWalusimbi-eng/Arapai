@@ -1,3 +1,7 @@
+# Arapai – one-command install on any device (CPU).
+# From project root with venv activated: pip install -r requirements.txt
+# Optional GPU build: see howtorun.txt and use requirements-gpu.txt with CMAKE_ARGS set.
+
 streamlit==1.31.1
 llama-cpp-python==0.2.20
 numpy

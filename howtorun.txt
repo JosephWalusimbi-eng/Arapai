@@ -75,3 +75,34 @@ Restart your PC after installation.
 
 Step B: Re-run install
 pip install llama-cpp-python==0.2.20
+
+
+============================================
+OPTIONAL: GPU ACCELERATION (FASTER INFERENCE)
+============================================
+
+Use this only on machines that have an NVIDIA GPU and CUDA installed.
+Default pip install is CPU-only and works on all school PCs.
+
+Prerequisites:
+- NVIDIA GPU with compatible drivers
+- CUDA Toolkit 11.x or 12.x installed (e.g. from https://developer.nvidia.com/cuda-downloads)
+- Python 3.10 or 3.11 (same as above)
+
+Install GPU-backed llama-cpp-python (Windows, PowerShell):
+
+  $env:CMAKE_ARGS="-DGGML_CUDA=on"
+  pip install -r requirements-gpu.txt --no-cache-dir --force-reinstall
+
+Or in Command Prompt (cmd):
+
+  set CMAKE_ARGS=-DGGML_CUDA=on
+  pip install -r requirements-gpu.txt --no-cache-dir --force-reinstall
+
+After this, the app will automatically use the GPU when loading the model
+(n_gpu_layers=-1 is already set in backend/llm_engine.py).
+
+If the GPU build fails (e.g. no CUDA or wrong version), reinstall the
+CPU version to restore normal behavior:
+
+  pip install -r requirements.txt --force-reinstall
