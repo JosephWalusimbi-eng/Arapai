@@ -85,10 +85,16 @@ def get_llm(model_tier=None):
     path = get_model_path(model_tier)
     with _lock:
         if _llm is None or path != _current_path:
-            if _llm is not None:
-                del _llm
-            _llm = _make_llama(path)
-            _current_path = path
+            old_llm = _llm
+            try:
+                new_llm = _make_llama(path)
+                _llm = new_llm
+                _current_path = path
+                if old_llm is not None:
+                    del old_llm
+            except Exception:
+                _llm = old_llm  # leave or restore so _llm is always defined
+                raise
         return _llm
 
 def warm_up(model_tier=None):
