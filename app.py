@@ -6,6 +6,18 @@ from backend.math_engine import solve
 
 st.set_page_config(page_title="Arapai", layout="centered")
 
+
+def _model_error_message(exc):
+    """Turn low-level model errors into a user-friendly message."""
+    err = f"{type(exc).__name__}: {exc!s}" if str(exc).strip() else f"{type(exc).__name__}"
+    if isinstance(exc, AssertionError):
+        return (
+            f"Sorry, the model could not respond ({err}). "
+            "This can happen with the Advanced model on some systems. "
+            "**Try selecting “Standard” or “Light” in the Model menu** and ask again."
+        )
+    return f"Sorry, the model could not respond: {err}"
+
 # ---------- SESSION STATE ----------
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -83,7 +95,7 @@ if st.session_state.pending_regen and not st.session_state.edit_mode:
                     try:
                         reply = generate(prompt, model_tier=_tier)
                     except Exception as e:
-                        reply = f"Sorry, the model could not respond: {e!r}"
+                        reply = _model_error_message(e)
             st.session_state.messages.append({"role": "assistant", "content": reply})
             st.rerun()
 
@@ -164,7 +176,7 @@ if not st.session_state.edit_mode:
                         stream_placeholder.markdown(reply + "▌")
                     stream_placeholder.markdown(reply)
                 except Exception as e:
-                    reply = f"Sorry, the model could not respond: {e!r}"
+                    reply = _model_error_message(e)
                     st.markdown(reply)
 
         st.session_state.messages.append({

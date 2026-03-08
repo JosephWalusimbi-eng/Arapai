@@ -157,6 +157,14 @@ Arapai is an **offline-first educational chatbot** that runs a local GGUF langua
 - **No authentication:** The app does not implement login or access control.
 - **Windows-focused docs:** `howtorun.txt` emphasizes Windows (venv path, Visual C++ Build Tools, CUDA instructions). Same Python flow applies on other OS with appropriate paths and build tools.
 
+### 7.1 Known console messages and errors
+
+- **`torch.classes` / `Tried to instantiate class '__path__._path', but it does not exist!`**  
+  This message comes from the PyTorch / Hugging Face stack (e.g. sentence-transformers or transformers), not from Arapai or llama-cpp. It is a benign warning and can be ignored; it does not affect chatbot or RAG behaviour. Optionally set `TORCH_SHOW_CPP_STACKTRACES=0` to reduce PyTorch verbosity.
+
+- **`AssertionError()` when using the Advanced model**  
+  On some systems the Advanced (e.g. 7B) model can trigger an assertion inside the inference stack. The UI will suggest trying **Standard** or **Light** in the Model menu. Use the Model dropdown to select a smaller tier if this occurs.
+
 ---
 
 ## 8. Summary Table

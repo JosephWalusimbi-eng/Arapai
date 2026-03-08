@@ -77,6 +77,12 @@ Step B: Re-run install
 pip install llama-cpp-python==0.2.20
 
 
+Console message you can ignore:
+If you see "torch.classes ... Tried to instantiate class '__path__._path'..." in the
+terminal, it is from PyTorch/sentence-transformers, not Arapai. It is harmless;
+the app and RAG work normally. You can ignore it.
+
+
 ============================================
 OPTIONAL: GPU ACCELERATION (FASTER INFERENCE)
 ============================================
