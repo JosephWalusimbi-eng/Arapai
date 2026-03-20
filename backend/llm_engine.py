@@ -3,6 +3,9 @@ import threading
 import psutil
 from llama_cpp import Llama
 
+# Resolve paths relative to project root (not current working directory).
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
 # ---------------- RAM DETECTION ----------------
 def get_available_ram_gb():
     return psutil.virtual_memory().available / (1024 ** 3)
@@ -10,26 +13,26 @@ def get_available_ram_gb():
 # ---------------- MODEL TIERS (manual override) ----------------
 # UI uses: "Auto" | "Light" | "Standard" | "Advanced"
 TIER_PATHS = {
-    "light": "models/lite/model.gguf",
-    "standard": "models/standard/model.gguf",
-    "advanced": "models/advanced/model.gguf",
+    "light": os.path.join(_PROJECT_ROOT, "models", "lite", "model.gguf"),
+    "standard": os.path.join(_PROJECT_ROOT, "models", "standard", "model.gguf"),
+    "advanced": os.path.join(_PROJECT_ROOT, "models", "advanced", "model.gguf"),
 }
 
 def _get_auto_model_path():
     """Choose model path from available RAM and existing model files."""
     ram = get_available_ram_gb()
 
-    if ram >= 8 and os.path.exists("models/advanced/model.gguf"):
+    if ram >= 8 and os.path.exists(TIER_PATHS["advanced"]):
         print("Using ADVANCED model (auto)")
-        return "models/advanced/model.gguf"
+        return TIER_PATHS["advanced"]
 
-    if ram >= 4 and os.path.exists("models/standard/model.gguf"):
+    if ram >= 4 and os.path.exists(TIER_PATHS["standard"]):
         print("Using STANDARD model (auto)")
-        return "models/standard/model.gguf"
+        return TIER_PATHS["standard"]
 
-    if os.path.exists("models/lite/model.gguf"):
+    if os.path.exists(TIER_PATHS["light"]):
         print("Using LITE model (auto)")
-        return "models/lite/model.gguf"
+        return TIER_PATHS["light"]
 
     raise RuntimeError(
         "No compatible model found. Place a GGUF model file at one of:\n"
@@ -74,10 +77,27 @@ def _make_llama(model_path):
                 return Llama(**common, n_gpu_layers=n_gpu_layers, use_mlock=use_mlock)
             except TypeError:
                 c = {k: v for k, v in common.items() if k != "n_threads_batch"}
-                return Llama(**c, n_gpu_layers=n_gpu_layers, use_mlock=use_mlock)
+                try:
+                    return Llama(**c, n_gpu_layers=n_gpu_layers, use_mlock=use_mlock)
+                except AssertionError as e:
+                    raise RuntimeError(
+                        f"Failed to load GGUF model at '{model_path}'. "
+                        "The file may be missing, corrupt, or incompatible with this llama.cpp build."
+                    ) from e
+            except AssertionError as e:
+                raise RuntimeError(
+                    f"Failed to load GGUF model at '{model_path}'. "
+                    "The file may be missing, corrupt, or incompatible with this llama.cpp build."
+                ) from e
             except Exception:
                 continue
-    return Llama(**{k: v for k, v in common.items() if k != "n_threads_batch"}, n_gpu_layers=0, use_mlock=False)
+    try:
+        return Llama(**{k: v for k, v in common.items() if k != "n_threads_batch"}, n_gpu_layers=0, use_mlock=False)
+    except AssertionError as e:
+        raise RuntimeError(
+            f"Failed to load GGUF model at '{model_path}'. "
+            "The file may be missing, corrupt, or incompatible with this llama.cpp build."
+        ) from e
 
 def get_llm(model_tier=None):
     """Load or return the current LLM; reload if model_tier implies a different path."""
@@ -109,8 +129,11 @@ def warm_up(model_tier=None):
         llm("Say OK.", max_tokens=2)
         _ready = True
 
-# Initial warm-up with auto selection (keeps first-run behavior)
-warm_up(None)
+#
+# NOTE:
+# Do not warm up at import time. Streamlit re-imports modules during reruns,
+# and any model-load failure would crash the whole app before the UI can render.
+# The UI should call warm_up() explicitly (and handle errors gracefully).
 
 # ---------------- INFERENCE ----------------
 def generate(prompt, max_tokens=256, model_tier=None):

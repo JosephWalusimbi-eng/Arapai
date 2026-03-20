@@ -36,8 +36,20 @@ if "pending_regen" not in st.session_state:
 
 if "warmed" not in st.session_state:
     _tier = None if st.session_state.model_tier == "Auto" else st.session_state.model_tier.lower()
-    warm_up(_tier)
-    st.session_state.warmed = True
+    try:
+        warm_up(_tier)
+        st.session_state.warmed = True
+    except Exception as e:
+        st.session_state.warmed = False
+        st.error(_model_error_message(e))
+        st.info(
+            "Make sure you have a valid GGUF file at one of:\n"
+            "- `models/lite/model.gguf`\n"
+            "- `models/standard/model.gguf`\n"
+            "- `models/advanced/model.gguf`\n\n"
+            "Then restart the app."
+        )
+        st.stop()
 
 # ---------- UI ----------
 st.title("Arapai – Offline AI Education ChatBot")
