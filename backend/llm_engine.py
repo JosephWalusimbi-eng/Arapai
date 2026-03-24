@@ -1,57 +1,34 @@
 import os
 import threading
-import psutil
 from llama_cpp import Llama
 
 # Resolve paths relative to project root (not current working directory).
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
-# ---------------- RAM DETECTION ----------------
-def get_available_ram_gb():
-    return psutil.virtual_memory().available / (1024 ** 3)
-
-# ---------------- MODEL TIERS (manual override) ----------------
-# UI uses: "Auto" | "Light" | "Standard" | "Advanced"
+# ---------------- MODEL TIERS (manual selection) ----------------
 TIER_PATHS = {
     "light": os.path.join(_PROJECT_ROOT, "models", "lite", "model.gguf"),
     "standard": os.path.join(_PROJECT_ROOT, "models", "standard", "model.gguf"),
     "advanced": os.path.join(_PROJECT_ROOT, "models", "advanced", "model.gguf"),
 }
 
-def _get_auto_model_path():
-    """Choose model path from available RAM and existing model files."""
-    ram = get_available_ram_gb()
-
-    if ram >= 8 and os.path.exists(TIER_PATHS["advanced"]):
-        print("Using ADVANCED model (auto)")
-        return TIER_PATHS["advanced"]
-
-    if ram >= 4 and os.path.exists(TIER_PATHS["standard"]):
-        print("Using STANDARD model (auto)")
-        return TIER_PATHS["standard"]
-
-    if os.path.exists(TIER_PATHS["light"]):
-        print("Using LITE model (auto)")
-        return TIER_PATHS["light"]
-
-    raise RuntimeError(
-        "No compatible model found. Place a GGUF model file at one of:\n"
-        "  • models/lite/model.gguf (any RAM)\n"
-        "  • models/standard/model.gguf (4+ GB free RAM)\n"
-        "  • models/advanced/model.gguf (8+ GB free RAM)\n"
-        "Download a GGUF model (e.g. TinyLlama, Phi-2, Llama from Hugging Face) and put it in the right folder."
-    )
-
 def get_model_path(override=None):
     """
-    Return model path: use override if it is 'light'|'standard'|'advanced' and file exists,
-    otherwise use auto selection. override=None or 'auto' => auto.
+    Return model path for explicit tier selection.
+    - override in {'light','standard','advanced'}: require that tier's file.
+    - override is None: default to light tier.
     """
-    if override and override != "auto":
-        override = override.lower()
-        if override in TIER_PATHS and os.path.exists(TIER_PATHS[override]):
-            return TIER_PATHS[override]
-    return _get_auto_model_path()
+    tier = (override or "light").lower()
+    if tier not in TIER_PATHS:
+        raise RuntimeError(f"Invalid model tier '{override}'. Choose light, standard, or advanced.")
+
+    path = TIER_PATHS[tier]
+    if not os.path.exists(path):
+        raise RuntimeError(
+            f"Selected model tier '{tier}' is missing: '{path}'. "
+            "Place a GGUF file there named model.gguf."
+        )
+    return path
 
 # ---------------- LAZY LOAD (supports runtime tier change) ----------------
 _llm = None
@@ -137,7 +114,7 @@ def warm_up(model_tier=None):
 
 # ---------------- INFERENCE ----------------
 def generate(prompt, max_tokens=256, model_tier=None):
-    """Generate a response. model_tier: None/'auto' = auto, or 'light'|'standard'|'advanced'."""
+    """Generate a response. model_tier: 'light'|'standard'|'advanced' (None defaults to light)."""
     llm = get_llm(model_tier)
     result = llm(
         prompt,

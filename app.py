@@ -25,8 +25,9 @@ if "messages" not in st.session_state:
 if "level" not in st.session_state or st.session_state.level not in LEVELS:
     st.session_state.level = list(LEVELS.keys())[0]
 
-if "model_tier" not in st.session_state:
-    st.session_state.model_tier = "Auto"
+MODEL_TIERS = ["Light", "Standard", "Advanced"]
+if "model_tier" not in st.session_state or st.session_state.model_tier not in MODEL_TIERS:
+    st.session_state.model_tier = "Light"
 
 if "edit_mode" not in st.session_state:
     st.session_state.edit_mode = False
@@ -35,7 +36,7 @@ if "pending_regen" not in st.session_state:
     st.session_state.pending_regen = False
 
 if "warmed" not in st.session_state:
-    _tier = None if st.session_state.model_tier == "Auto" else st.session_state.model_tier.lower()
+    _tier = st.session_state.model_tier.lower()
     try:
         warm_up(_tier)
         st.session_state.warmed = True
@@ -66,13 +67,12 @@ st.selectbox(
     on_change=_request_regen,
 )
 
-MODEL_TIERS = ["Auto", "Light", "Standard", "Advanced"]
 st.selectbox(
     "Model:",
     options=MODEL_TIERS,
-    index=MODEL_TIERS.index(st.session_state.model_tier) if st.session_state.model_tier in MODEL_TIERS else 0,
+    index=MODEL_TIERS.index(st.session_state.model_tier),
     key="model_tier",
-    help="Auto picks by RAM. Override to force Light, Standard, or Advanced (may require more RAM).",
+    help="Select model tier manually. Light is the default for fastest and most stable startup.",
 )
 
 use_rag = st.checkbox("Use reference documents (PDFs)", value=False)
@@ -99,7 +99,7 @@ if st.session_state.pending_regen and not st.session_state.edit_mode:
                     )
             history = st.session_state.messages[-6:]
             prompt = build_prompt(st.session_state.level, history, retrieved_text)
-            _tier = None if st.session_state.model_tier == "Auto" else st.session_state.model_tier.lower()
+            _tier = st.session_state.model_tier.lower()
             with st.spinner("Regenerating..."):
                 if math_result is not None:
                     reply = f"The result is {math_result}."
@@ -175,7 +175,7 @@ if not st.session_state.edit_mode:
         )
 
         with st.chat_message("assistant"):
-            _tier = None if st.session_state.model_tier == "Auto" else st.session_state.model_tier.lower()
+            _tier = st.session_state.model_tier.lower()
             if math_result is not None:
                 reply = f"The result is {math_result}."
                 st.markdown(reply)
