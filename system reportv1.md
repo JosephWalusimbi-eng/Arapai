@@ -17,9 +17,9 @@ Arapai is an **offline-first educational chatbot** that runs a local GGUF langua
 | Feature | Description |
 |--------|-------------|
 | **Offline LLM chat** | Local inference using GGUF models (llama-cpp-python); no cloud API. |
-| **Multi-tier models** | Auto-selection by RAM (lite / standard / advanced) or manual override (Light, Standard, Advanced). |
+| **Multi-tier models** | Manual selection of Light / Standard / Advanced model tiers. |
 | **Streaming responses** | Token-by-token output for faster perceived response time (Ollama-style). |
-| **Explanation levels** | Four levels: Simple English, Lower Secondary, Upper Secondary, Technical. |
+| **Explanation levels** | Six levels: basic, basic_detailed, standard, standard_detailed, advanced, advanced_detailed. |
 | **Optional RAG** | “Use reference documents (PDFs)” retrieves relevant chunks from indexed PDFs and injects them into the prompt. |
 | **Safe math** | Pure numeric expressions (+, -, *, /, parentheses) are evaluated safely without `eval()` of arbitrary code. |
 | **Edit & regenerate** | User can edit the last question and regenerate the assistant reply. |
@@ -32,7 +32,7 @@ Arapai is an **offline-first educational chatbot** that runs a local GGUF langua
 ### 3.1 User flow
 
 1. **Start** – User opens the app; session state is initialized (messages, level, model tier, etc.); LLM is warmed up on first load.
-2. **Configure** – User selects explanation level, model (Auto / Light / Standard / Advanced), and optionally enables “Use reference documents (PDFs)”.
+2. **Configure** – User selects explanation level and model (Light / Standard / Advanced), and optionally enables “Use reference documents (PDFs)”.
 3. **Ask** – User types a question in the chat input.
 4. **Process** – For each turn:
    - **Math:** If the input is a numeric-only expression, `math_engine.solve()` returns the result and the assistant replies with that result only (no LLM).
@@ -45,8 +45,8 @@ Arapai is an **offline-first educational chatbot** that runs a local GGUF langua
 
 ### 3.2 Model selection
 
-- **Auto:** Backend uses `get_available_ram_gb()` (psutil). If RAM ≥ 8 GB and `models/advanced/model.gguf` exists → advanced; else if RAM ≥ 4 GB and `models/standard/model.gguf` exists → standard; else `models/lite/model.gguf` (if present). If no file exists, a `RuntimeError` is raised with instructions.
-- **Manual:** User selects Light, Standard, or Advanced; backend uses the corresponding path if the file exists, otherwise falls back to auto.
+- **Manual only:** User selects Light, Standard, or Advanced; backend requires the selected GGUF file.
+- **Default:** The model selector defaults to Light for stable startup.
 - **Lazy load:** The LLM is loaded on first use (or when tier changes). Switching tier in the UI causes the next request to load the new model.
 
 ### 3.3 RAG (reference documents)
@@ -94,8 +94,8 @@ Arapai is an **offline-first educational chatbot** that runs a local GGUF langua
 
 | Module | Role |
 |--------|------|
-| **llm_engine** | RAM detection, model path resolution (auto + override), lazy Llama load with optional GPU (`n_gpu_layers=-1`), batch threading, `warm_up()`, `generate()`, `generate_stream()`. |
-| **prompt_builder** | `LEVELS` (four explanation levels), `build_prompt(level, history, retrieved_text)` producing the Arapai system prompt + reference + conversation. |
+| **llm_engine** | Manual model path resolution, lazy Llama load with optional GPU (`n_gpu_layers=-1`), batch threading, `warm_up()`, `generate()`, `generate_stream()`. |
+| **prompt_builder** | `LEVELS` (six explanation levels in strict progression), labels/order constants, and `build_prompt(level, history, retrieved_text)`. |
 | **rag_engine** | Loads SentenceTransformer and FAISS index on first use; `retrieve(query, top_k=3)` returns concatenated top-k chunks. |
 | **math_engine** | Whitelist regex + tokenizer + recursive expression evaluator; `solve(expression)` returns float or None. |
 
@@ -173,7 +173,7 @@ Arapai is an **offline-first educational chatbot** that runs a local GGUF langua
 |--------|--------|
 | **Purpose** | Offline educational chatbot with local LLM, optional PDF RAG, safe math. |
 | **UI** | Streamlit; one page; chat + level + model + RAG checkbox + edit/regenerate/new chat. |
-| **LLM** | GGUF via llama-cpp-python; auto or manual tier; streaming in main chat. |
+| **LLM** | GGUF via llama-cpp-python; manual tier selection; streaming in main chat. |
 | **RAG** | PDFs → chunk → embed (MiniLM) → FAISS; retrieve top-k into prompt. |
 | **Math** | Safe numeric expressions only; no eval of code. |
 | **Install** | `pip install -r requirements.txt`; optional GPU via `requirements-gpu.txt`. |

@@ -1,6 +1,7 @@
 import streamlit as st
+import re
 from backend.llm_engine import warm_up, generate, generate_stream
-from backend.prompt_builder import build_prompt, LEVELS
+from backend.prompt_builder import build_prompt, LEVELS, LEVEL_ORDER, LEVEL_LABELS, LEVEL_HINTS
 from backend.rag_engine import retrieve
 from backend.math_engine import solve
 
@@ -18,12 +19,101 @@ def _model_error_message(exc):
         )
     return f"Sorry, the model could not respond: {err}"
 
+
+def _word_count(text):
+    return len(re.findall(r"\b\w+\b", text or ""))
+
+
+def _sentence_count(text):
+    parts = re.split(r"[.!?]+", text or "")
+    return len([p for p in parts if p.strip()])
+
+
+def _numbered_steps_count(text):
+    return len(re.findall(r"(?m)^\s*\d+[.)]\s+\S+", text or ""))
+
+
+def _is_level_compliant(level, text):
+    words = _word_count(text)
+    sentences = _sentence_count(text)
+    steps = _numbered_steps_count(text)
+    lower_text = (text or "").lower()
+    banned_phrases = (
+        "i apologize",
+        "sorry",
+        "apologies",
+        "as mentioned",
+        "as i mentioned",
+        "earlier response",
+        "previous response",
+        "confusion earlier",
+        "new opportunity",
+        "accurate and comprehensive explanation",
+        "let me provide",
+        "i can provide",
+    )
+    if any(phrase in lower_text for phrase in banned_phrases):
+        return False
+
+    if level == "basic":
+        return 1 <= sentences <= 2 and words <= 45 and steps == 0
+    if level == "basic_detailed":
+        return 2 <= sentences <= 3 and 40 <= words <= 95 and "for example" in lower_text and steps == 0
+    if level == "standard":
+        return 2 <= sentences <= 3 and 45 <= words <= 95 and steps == 0
+    if level == "standard_detailed":
+        return 130 <= words <= 220 and 3 <= steps <= 4
+    if level == "advanced":
+        return 3 <= sentences <= 4 and 70 <= words <= 140 and steps == 0
+    if level == "advanced_detailed":
+        return 220 <= words <= 360 and 5 <= steps <= 8
+    return True
+
+
+def _regenerate_for_level(prompt, level, model_tier):
+    """
+    One-shot regeneration pass when the first answer doesn't follow level rules.
+    """
+    compliance_hint = (
+        "\n\nIMPORTANT RETRY RULE:\n"
+        f"Your previous answer did not satisfy level='{level}'. "
+        "Regenerate and strictly follow all response rules, including format and length. "
+        "Do not apologize and do not reference previous answers. "
+        "Answer only the user's latest question directly."
+    )
+    return generate(prompt + compliance_hint, model_tier=model_tier)
+
+
+def _ensure_valid_reply(prompt, level, model_tier, reply):
+    """
+    Ensure we never return empty or meta filler text.
+    One retry for compliance, one stricter retry if still invalid.
+    """
+    reply = (reply or "").strip()
+    if reply and _is_level_compliant(level, reply):
+        return reply
+
+    retry = _regenerate_for_level(prompt, level, model_tier).strip()
+    if retry and _is_level_compliant(level, retry):
+        return retry
+
+    final_hint = (
+        "\n\nFINAL RETRY RULE:\n"
+        "Return only the final explanation content.\n"
+        "No preface, no apology, no meta commentary.\n"
+        "Do not say you are about to explain; just explain now."
+    )
+    final = generate(prompt + final_hint, model_tier=model_tier).strip()
+    if final:
+        return final
+    return "I could not generate a valid explanation. Please ask again."
+
 # ---------- SESSION STATE ----------
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 if "level" not in st.session_state or st.session_state.level not in LEVELS:
-    st.session_state.level = list(LEVELS.keys())[0]
+    st.session_state.level = "standard"
 
 MODEL_TIERS = ["Light", "Standard", "Advanced"]
 if "model_tier" not in st.session_state or st.session_state.model_tier not in MODEL_TIERS:
@@ -61,16 +151,16 @@ def _request_regen():
 
 st.selectbox(
     "Explanation level:",
-    options=list(LEVELS.keys()),
-    index=list(LEVELS.keys()).index(st.session_state.level),
+    options=list(LEVEL_ORDER),
     key="level",
+    format_func=lambda k: LEVEL_LABELS[k],
     on_change=_request_regen,
 )
+st.caption(f"Selected behavior: {LEVEL_HINTS.get(st.session_state.level, '')}")
 
 st.selectbox(
     "Model:",
     options=MODEL_TIERS,
-    index=MODEL_TIERS.index(st.session_state.model_tier),
     key="model_tier",
     help="Select model tier manually. Light is the default for fastest and most stable startup.",
 )
@@ -106,6 +196,12 @@ if st.session_state.pending_regen and not st.session_state.edit_mode:
                 else:
                     try:
                         reply = generate(prompt, model_tier=_tier)
+                        reply = _ensure_valid_reply(
+                            prompt,
+                            st.session_state.level,
+                            _tier,
+                            reply,
+                        )
                     except Exception as e:
                         reply = _model_error_message(e)
             st.session_state.messages.append({"role": "assistant", "content": reply})
@@ -133,8 +229,8 @@ if st.session_state.edit_mode:
     with col1:
         if st.button("Save & Regenerate"):
             st.session_state.messages[-2]["content"] = edited
-            st.session_state.messages.pop()
             st.session_state.edit_mode = False
+            st.session_state.pending_regen = True
             st.rerun()
 
     with col2:
@@ -186,6 +282,12 @@ if not st.session_state.edit_mode:
                     for chunk in generate_stream(prompt, model_tier=_tier):
                         reply += chunk
                         stream_placeholder.markdown(reply + "▌")
+                    reply = _ensure_valid_reply(
+                        prompt,
+                        st.session_state.level,
+                        _tier,
+                        reply,
+                    )
                     stream_placeholder.markdown(reply)
                 except Exception as e:
                     reply = _model_error_message(e)

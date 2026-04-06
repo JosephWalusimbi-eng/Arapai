@@ -20,11 +20,11 @@ The chatbot needs a GGUF model to run. Put **one** model file in one of these fo
 
 ### Standard (4+ GB free RAM)
 
-- **Qwen 2.5 3B Instruct, Q5_K_M** (better quality, still fast)  
-  ```bash
-  huggingface-cli download Qwen/Qwen2.5-3B-Instruct-GGUF qwen2.5-3b-instruct-q5_k_m.gguf --local-dir . --local-dir-use-symlinks False
-  ```  
-  → Move the downloaded file to `models/standard/model.gguf`
+- **Llama-2 7B Chat, Q4_K_M** (works with pinned `llama-cpp-python==0.2.20`)  
+  https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf  
+  → Save as `models/standard/model.gguf`
+
+> Note: Qwen2.5 GGUF uses the `qwen2` architecture and can fail with older pinned llama.cpp builds.
 
 ### Advanced (8+ GB free RAM)
 
