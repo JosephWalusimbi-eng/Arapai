@@ -1,0 +1,37 @@
+:root {
+    /* Main Theme Colors: Indigo + Neutral Gray */
+    --primary-color: #818cf8; /* Indigo 400 */
+    --primary-rgb: 129, 140, 248;
+    --accent-color: #a5b4fc;  /* Indigo 300 */
+    
+    /* Backgrounds */
+    --main-bg: #111827;       /* Gray 900 */
+    --sidebar-bg: #1f2937;    /* Gray 800 */
+    
+    /* Texts */
+    --text-color: #f3f4f6;    /* Gray 100 */
+    
+    /* Chat Bubbles */
+    --chat-bg: #1f2937;       /* Gray 800 */
+    --chat-border: #374151;   /* Gray 700 */
+    --chat-bg-alt: #111827;   /* Gray 900 */
+    --chat-border-alt: #1f2937;
+    
+    /* Inputs & UI elements */
+    --input-bg: #1f2937;
+    --input-border: #4b5563;  /* Gray 600 */
+    --sidebar-border: #374151;
+    
+    /* Shadows */
+    --shadow-opacity: 0.4;
+    --shadow-opacity-hover: 0.6;
+}
+
+/* Base override to ensure Streamlit wrapper inherits text-color correctly */
+body {
+    color: var(--text-color) !important;
+}
+
+[data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+    background-color: var(--main-bg) !important;
+}

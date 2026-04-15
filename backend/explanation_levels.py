@@ -1,39 +1,30 @@
 LEVEL_ORDER = (
     "basic",
-    "basic_detailed",
-    "standard",
-    "standard_detailed",
-    "advanced",
-    "advanced_detailed",
+    "lower_secondary",
+    "upper_secondary",
+    "technical",
 )
 
 FALLBACK_ORDER = (
-    "advanced_detailed",
-    "advanced",
-    "standard_detailed",
-    "standard",
-    "basic_detailed",
+    "technical",
+    "upper_secondary",
+    "lower_secondary",
     "basic",
-)
-
-DETAILED_PAIRS = (
-    ("basic", "basic_detailed"),
-    ("standard", "standard_detailed"),
-    ("advanced", "advanced_detailed"),
 )
 
 MIGRATION_MAP = {
     "simple": "basic",
-    "lower_secondary": "basic_detailed",
-    "upper_secondary": "standard",
-    "technical": "advanced",
+    "basic_detailed": "lower_secondary",
+    "standard": "lower_secondary",
+    "standard_detailed": "upper_secondary",
+    "advanced": "upper_secondary",
+    "advanced_detailed": "technical",
 }
 
 
 def migrate_legacy_explanations(legacy_payload):
     """
-    Convert old explanation keys to the new 6-level schema.
-    Missing detailed levels are copied from base where possible.
+    Convert legacy explanation keys to the current 4-level schema.
     """
     legacy_payload = legacy_payload or {}
     migrated = {key: "" for key in LEVEL_ORDER}
@@ -42,10 +33,6 @@ def migrate_legacy_explanations(legacy_payload):
         value = (legacy_payload.get(old_key) or "").strip()
         if value:
             migrated[new_key] = value
-
-    for base, detailed in DETAILED_PAIRS:
-        if not migrated[detailed]:
-            migrated[detailed] = migrated[base] or ""
 
     return migrated
 
@@ -84,13 +71,6 @@ def validate_explanations(payload):
     def _words(text):
         return [w for w in text.split() if w]
 
-    # Detailed must be longer than base.
-    for base, detailed in DETAILED_PAIRS:
-        if len(_words(values[detailed])) <= len(_words(values[base])):
-            errors.append(
-                f"'{detailed}' must be more detailed than '{base}' (longer content required)."
-            )
-
     # Ensure progression depth increases strictly.
     lengths = [len(_words(values[key])) for key in LEVEL_ORDER]
     for i in range(1, len(lengths)):
@@ -111,7 +91,7 @@ def get_explanation_with_fallback(payload, requested_level):
     Requested level is attempted first, then lower fallback levels.
     """
     payload = payload or {}
-    requested_level = requested_level if requested_level in FALLBACK_ORDER else "standard"
+    requested_level = requested_level if requested_level in FALLBACK_ORDER else "lower_secondary"
 
     start_idx = FALLBACK_ORDER.index(requested_level)
     for level in FALLBACK_ORDER[start_idx:]:

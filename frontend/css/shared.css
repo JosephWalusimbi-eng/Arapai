@@ -1,0 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Apply modern font to everything */
+* {
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* Hide the default streamlit top padding to make it look like a real app */
+.block-container {
+    padding-top: 2rem !important;
+    padding-bottom: 5rem !important;
+    max-width: 850px;
+}
+
+/* Base element transitions for smooth theme switching */
+[data-testid="stAppViewContainer"], 
+[data-testid="stSidebar"],
+[data-testid="stChatMessage"],
+[data-testid="stChatInput"] {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Chat Message Styling */
+[data-testid="stChatMessage"] {
+    border-radius: 16px;
+    padding: 1.5rem !important;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, var(--shadow-opacity));
+    border: 1px solid var(--chat-border) !important;
+    background-color: var(--chat-bg) !important;
+}
+
+[data-testid="stChatMessage"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, var(--shadow-opacity-hover));
+}
+
+[data-testid="stChatMessage"] > div {
+    gap: 1rem;
+}
+
+/* Assistant background explicitly slightly different */
+[data-testid="stChatMessage"]:nth-child(even) {
+    background-color: var(--chat-bg-alt) !important;
+    border-color: var(--chat-border-alt) !important;
+}
+
+/* Avatar styling */
+[data-testid="stChatMessageAvatar"] {
+    display: none !important;
+}
+
+/* Chat Input Container Styling */
+/* The innermost text area */
+.stChatInput textarea {
+    font-size: 1rem !important;
+}
+
+/* The wrapper div for chat input */
+[data-testid="stChatInput"] > div {
+    border-radius: 20px !important;
+    border: 2px solid var(--input-border) !important;
+    background-color: var(--input-bg) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, var(--shadow-opacity));
+    transition: all 0.2s ease;
+    padding: 0.25rem 0.5rem;
+}
+
+[data-testid="stChatInput"] > div:focus-within {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 6px 20px rgba(var(--primary-rgb), 0.25);
+    transform: translateY(-1px);
+}
+
+/* Header typography */
+h1 {
+    font-weight: 700 !important;
+    color: var(--primary-color) !important;
+    margin-bottom: 2rem !important;
+    font-size: 2.5rem !important;
+    text-align: center;
+}
+
+h2, h3, h4 {
+    font-weight: 600 !important;
+    color: var(--text-color) !important;
+}
+
+/* General Layout Colors (Fallback variables set in light/dark files) */
+[data-testid="stAppViewContainer"] {
+    background-color: var(--main-bg) !important;
+}
+
+[data-testid="stSidebar"] {
+    background-color: var(--sidebar-bg) !important;
+    border-right: 1px solid var(--sidebar-border) !important;
+}
+
+/* All text colors */
+.stMarkdownContainer p, 
+.stMarkdownContainer li, 
+.stMarkdownContainer span {
+    color: var(--text-color) !important;
+    font-size: 1.05rem !important;
+    line-height: 1.6 !important;
+}
+
+/* Sidebar styling tweaks */
+[data-testid="stSidebar"] h1 {
+    font-size: 1.8rem !important;
+    text-align: left;
+}
+
+[data-testid="stSidebarUserContent"] {
+    padding-top: 2rem !important;
+}
+
+/* Toggle Switch styling */
+.stToggle {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
