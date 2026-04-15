@@ -1,6 +1,7 @@
 import re
 import streamlit as st
 from backend.llm_engine import warm_up, generate, generate_stream
+from backend.online_gemma import generate as online_generate
 from backend.math_engine import solve
 from backend.prompt_builder import (
     LEVEL_HINTS,
@@ -89,6 +90,13 @@ section[data-testid="stSidebar"] * { color: #e5e7eb !important; }
 
 def _model_error_message(exc):
     err = f"{type(exc).__name__}: {exc!s}" if str(exc).strip() else f"{type(exc).__name__}"
+    if "HF token missing" in err:
+        return (
+            "Online mode needs a Hugging Face token.\n\n"
+            "- Set environment variable `HF_TOKEN` (or `HUGGINGFACEHUB_API_TOKEN`).\n"
+            "- Restart the app.\n\n"
+            f"Details: {err}"
+        )
     return f"Sorry, the model could not respond: {err}"
 
 
@@ -166,6 +174,8 @@ def _regenerate_for_level(prompt, level, model_tier):
         "Do not apologize and do not reference previous answers. "
         "Answer only the user's latest question directly."
     )
+    if st.session_state.run_mode == "Online (Gemma 4)":
+        return online_generate(prompt + compliance_hint)
     return generate(prompt + compliance_hint, model_tier=model_tier)
 
 
@@ -255,6 +265,8 @@ if "debug_level_checks" not in st.session_state:
     st.session_state.debug_level_checks = False
 if "last_debug_info" not in st.session_state:
     st.session_state.last_debug_info = None
+if "run_mode" not in st.session_state or st.session_state.run_mode not in ("Offline", "Online (Gemma 4)"):
+    st.session_state.run_mode = "Offline"
 if "theme_mode" not in st.session_state or st.session_state.theme_mode not in ("Dark", "Light"):
     st.session_state.theme_mode = "Dark"
 
@@ -282,13 +294,17 @@ with st.sidebar:
     st.markdown("---")
     st.caption("Offline AI Tutor")
     st.selectbox("Theme", options=["Dark", "Light"], key="theme_mode")
+    st.selectbox("Mode", options=["Offline", "Online (Gemma 4)"], key="run_mode")
     st.markdown("---")
-    st.selectbox(
-        "Model",
-        options=MODEL_TIERS,
-        key="model_tier",
-        help="Select model tier manually. Light is default for fastest and most stable startup.",
-    )
+    if st.session_state.run_mode == "Offline":
+        st.selectbox(
+            "Model",
+            options=MODEL_TIERS,
+            key="model_tier",
+            help="Select model tier manually. Light is default for fastest and most stable startup.",
+        )
+    else:
+        st.info("Online mode uses `google/gemma-4-31B-it`.")
     st.checkbox("Use reference documents (PDFs)", key="use_rag")
     st.markdown("---")
     st.checkbox("Debug level compliance", key="debug_level_checks")
@@ -351,7 +367,7 @@ if st.session_state.pending_regen and not st.session_state.edit_mode:
                         prompt,
                         st.session_state.level,
                         tier,
-                        generate(prompt, model_tier=tier),
+                        online_generate(prompt) if st.session_state.run_mode == "Online (Gemma 4)" else generate(prompt, model_tier=tier),
                     )
                     st.session_state.last_debug_info = debug
                 except Exception as e:
@@ -416,17 +432,24 @@ if not st.session_state.edit_mode:
                 st.markdown(reply)
             else:
                 try:
-                    ph = st.empty()
-                    reply = ""
-                    for chunk in generate_stream(prompt, model_tier=tier):
-                        reply += chunk
-                        ph.markdown(reply + "▌")
-                    if not reply.strip():
-                        # If streaming returns nothing, fallback to non-stream generation.
-                        reply = generate(prompt, model_tier=tier)
-                    reply, debug = _ensure_valid_reply(prompt, st.session_state.level, tier, reply)
-                    st.session_state.last_debug_info = debug
-                    ph.markdown(reply)
+                    if st.session_state.run_mode == "Online (Gemma 4)":
+                        with st.spinner("Thinking..."):
+                            raw = online_generate(prompt)
+                        reply, debug = _ensure_valid_reply(prompt, st.session_state.level, tier, raw)
+                        st.session_state.last_debug_info = debug
+                        st.markdown(reply)
+                    else:
+                        ph = st.empty()
+                        reply = ""
+                        for chunk in generate_stream(prompt, model_tier=tier):
+                            reply += chunk
+                            ph.markdown(reply + "▌")
+                        if not reply.strip():
+                            # If streaming returns nothing, fallback to non-stream generation.
+                            reply = generate(prompt, model_tier=tier)
+                        reply, debug = _ensure_valid_reply(prompt, st.session_state.level, tier, reply)
+                        st.session_state.last_debug_info = debug
+                        ph.markdown(reply)
                 except Exception as e:
                     reply = _model_error_message(e)
                     st.session_state.last_debug_info = {"error": str(e)}
