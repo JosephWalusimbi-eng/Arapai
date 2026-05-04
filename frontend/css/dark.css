@@ -1,30 +1,30 @@
 :root {
-    /* Main Theme Colors: Indigo + Neutral Gray */
-    --primary-color: #818cf8; /* Indigo 400 */
-    --primary-rgb: 129, 140, 248;
-    --accent-color: #a5b4fc;  /* Indigo 300 */
+    /* Main Theme Colors: Warm Amber/Cream Tone */
+    --primary-color: #d97706; /* Amber 600 */
+    --primary-rgb: 217, 119, 6;
+    --accent-color: #f59e0b;  /* Amber 500 */
     
     /* Backgrounds */
-    --main-bg: #111827;       /* Gray 900 */
-    --sidebar-bg: #1f2937;    /* Gray 800 */
+    --main-bg: #1a1614;       /* Warm Dark Gray/Brown */
+    --sidebar-bg: #241e1c;    /* Slightly lighter brown */
     
     /* Texts */
-    --text-color: #f3f4f6;    /* Gray 100 */
+    --text-color: #ede6e3;    /* Warm Off-white */
     
     /* Chat Bubbles */
-    --chat-bg: #1f2937;       /* Gray 800 */
-    --chat-border: #374151;   /* Gray 700 */
-    --chat-bg-alt: #111827;   /* Gray 900 */
-    --chat-border-alt: #1f2937;
+    --chat-bg: #2d2a27;       /* Warm Gray */
+    --chat-border: #3f3a36;
+    --chat-bg-alt: #1a1614;
+    --chat-border-alt: #2d2a27;
     
     /* Inputs & UI elements */
-    --input-bg: #1f2937;
-    --input-border: #4b5563;  /* Gray 600 */
-    --sidebar-border: #374151;
+    --input-bg: #241e1c;
+    --input-border: #4a443f;
+    --sidebar-border: #3f3a36;
     
     /* Shadows */
-    --shadow-opacity: 0.4;
-    --shadow-opacity-hover: 0.6;
+    --shadow-opacity: 0.5;
+    --shadow-opacity-hover: 0.7;
 }
 
 /* Base override to ensure Streamlit wrapper inherits text-color correctly */

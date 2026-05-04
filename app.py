@@ -12,45 +12,78 @@ from backend.prompt_builder import (
 )
 from backend.rag_engine import retrieve
 
-st.set_page_config(page_title="Arapai", layout="wide")
+st.set_page_config(page_title="Arapai- Offline AI Tutor", layout="wide")
+
+
+import json
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH = os.path.join(BASE_DIR, "data", "cbc_content.json")
+
+def check_answer(user_answer, correct_answers):
+    import re
+
+    def clean(text):
+        return re.sub(r'[^\w\s]', '', text.lower()).split()
+
+    user_words = set(clean(user_answer))
+
+    best_score = 0
+    for ans in correct_answers:
+        ans_words = set(clean(ans))
+        if len(ans_words) == 0:
+            continue
+        score = len(user_words & ans_words) / len(ans_words)
+        best_score = max(best_score, score)
+
+    if best_score >= 0.5:
+        return "correct"
+    elif best_score >= 0.3:
+        return "partial"
+    else:
+        return "wrong"
+
+with open(DATA_PATH, "r") as f:
+    cbc_content = json.load(f)
 
 
 def _inject_gemini_style(theme_mode):
     if theme_mode == "Light":
         css = """
 <style>
-.stApp { background: #f1f3f4; color: #111827; }
-section[data-testid="stSidebar"] { background: #eef1f4; border-right: 0px solid transparent; }
-section[data-testid="stSidebar"] * { color: #111827 !important; }
+.stApp { background: #ffffff; color: #31333f; }
+section[data-testid="stSidebar"] { background: #f0f2f6; border-right: 0px solid transparent; }
+section[data-testid="stSidebar"] * { color: #31333f !important; }
 .arapai-hero { padding: 0.2rem 0 0.6rem 0.1rem; }
-.arapai-title { font-size: 1.9rem; font-weight: 700; line-height: 1.2; margin-bottom: .25rem; color: #111827; }
-.arapai-sub { color: #5f6368; font-size: 1rem; }
-.stSelectbox label, .stCheckbox label, .stCaption { color: #374151 !important; }
+.arapai-title { font-size: 1.9rem; font-weight: 700; line-height: 1.2; margin-bottom: .25rem; color: #000000; }
+.arapai-sub { color: #555555; font-size: 1rem; }
+.stSelectbox label, .stCheckbox label, .stCaption { color: #31333f !important; }
 .st-emotion-cache-1y4p8pa { max-width: 900px; }
 [data-testid="stSelectbox"] div[data-baseweb="select"] > div {
   background: #ffffff !important;
-  border: 1px solid #e5e7eb !important;
-  color: #111827 !important;
+  border: 1px solid #e6e9ef !important;
+  color: #31333f !important;
   border-radius: 14px !important;
 }
 [data-testid="stChatInput"] > div {
   border-radius: 28px !important;
-  border: 1px solid #e5e7eb !important;
+  border: 1px solid #e6e9ef !important;
   background: #ffffff !important;
   box-shadow: 0 1px 2px rgba(0,0,0,0.08) !important;
 }
 [data-testid="stChatInput"] input {
-  color: #111827 !important;
+  color: #31333f !important;
 }
 [data-testid="stChatMessage"] { background: transparent !important; border: 0 !important; }
 [data-testid="stChatMessageContent"],
 [data-testid="stChatMessageContent"] p,
 [data-testid="stChatMessageContent"] li {
-  color: #111827 !important;
+  color: #31333f !important;
 }
 [data-testid="stChatMessageAvatar"] { display: none !important; }
 [data-testid="stCheckbox"] label span {
-  color: #111827 !important;
+  color: #31333f !important;
 }
 
 /* Reduce Streamlit chrome for a cleaner Gemini-like canvas */
@@ -61,25 +94,25 @@ header, footer { visibility: hidden; }
     else:
         css = """
 <style>
-.stApp { background: #0b1020; color: #e5e7eb; }
-section[data-testid="stSidebar"] { background: #111827; border-right: 1px solid #1f2937; }
-section[data-testid="stSidebar"] * { color: #e5e7eb !important; }
+.stApp { background: #0e1117; color: #fafafa; }
+section[data-testid="stSidebar"] { background: #262730; border-right: 1px solid #3e3e3e; }
+section[data-testid="stSidebar"] * { color: #fafafa !important; }
 .arapai-hero { padding: 0.2rem 0 0.6rem 0.1rem; }
-.arapai-title { font-size: 1.9rem; font-weight: 700; line-height: 1.2; margin-bottom: .25rem; }
-.arapai-sub { color: #9ca3af; font-size: 1rem; }
-.stChatInput > div { border-radius: 24px !important; border: 1px solid #374151 !important; background: #111827 !important; }
-.stSelectbox label, .stCheckbox label { color: #d1d5db !important; }
+.arapai-title { font-size: 1.9rem; font-weight: 700; line-height: 1.2; margin-bottom: .25rem; color: #ffffff; }
+.arapai-sub { color: #b2b7c4; font-size: 1rem; }
+.stChatInput > div { border-radius: 24px !important; border: 1px solid #4f555b !important; background: #262730 !important; }
+.stSelectbox label, .stCheckbox label { color: #fafafa !important; }
 .st-emotion-cache-1y4p8pa { max-width: 900px; }
 [data-testid="stChatMessage"] {
-  background: #151b2d !important;
-  border: 1px solid #2a3247 !important;
+  background: #262730 !important;
+  border: 1px solid #3e3e3e !important;
   border-radius: 12px !important;
   padding: 0.35rem 0.6rem !important;
 }
 [data-testid="stChatMessageContent"],
 [data-testid="stChatMessageContent"] p,
 [data-testid="stChatMessageContent"] li {
-  color: #e5e7eb !important;
+  color: #fafafa !important;
 }
 /* Hide Streamlit chat avatars (red/yellow icons) */
 [data-testid="stChatMessageAvatar"] { display: none !important; }
@@ -174,7 +207,7 @@ def _regenerate_for_level(prompt, level, model_tier):
         "Do not apologize and do not reference previous answers. "
         "Answer only the user's latest question directly."
     )
-    if st.session_state.run_mode == "Online (Gemma 4)":
+    if st.session_state.run_mode == "Online (Gemma 1.1)":
         return online_generate(prompt + compliance_hint)
     return generate(prompt + compliance_hint, model_tier=model_tier)
 
@@ -246,6 +279,158 @@ def _request_regen():
     if not st.session_state.edit_mode:
         st.session_state.pending_regen = True
 
+def render_cbc_learn():
+    st.title("CBC Learning Mode")
+
+    if st.session_state.cbc_level is None:
+        level = st.selectbox("Select Level", list(cbc_content.keys()))
+
+        if st.button("Continue"):
+            st.session_state.cbc_level = level
+            st.rerun()
+
+    elif st.session_state.cbc_topic is None:
+        topics = [item["topic"] for item in cbc_content[st.session_state.cbc_level]]
+
+        topic = st.selectbox("Select Topic", topics)
+
+        if st.button("Load Questions"):
+            st.session_state.cbc_topic = topic
+            st.rerun()
+
+    else:
+        selected_items = [
+            item for item in cbc_content[st.session_state.cbc_level]
+            if item["topic"] == st.session_state.cbc_topic
+        ]
+
+        if "q_index" not in st.session_state:
+            st.session_state.q_index = 0
+
+        if "score" not in st.session_state:
+            st.session_state.score = 0
+
+        if "answers_log" not in st.session_state:
+            st.session_state.answers_log = []
+
+        questions = selected_items[0]["questions"]  # new structure
+
+        if st.session_state.q_index >= len(questions):
+            st.success("🎉 Topic Completed")
+
+            total = len(questions)
+            score = st.session_state.score
+
+            st.write(f"### Score: {score} / {total}")
+
+            st.markdown("## Corrections")
+
+            for item in st.session_state.answers_log:
+                st.write(f"**Question:** {item['question']}")
+                st.write(f"Your Answer: {item['your_answer']}")
+                st.write(f"Correct Answers: {', '.join(item['correct_answers'])}")
+                st.write(f"Result: {item['result']}")
+                st.markdown("---")
+
+            if st.button("Restart Topic"):
+                st.session_state.q_index = 0
+                st.session_state.score = 0
+                st.session_state.answers_log = []
+                st.rerun()
+
+            if st.button("Back to Topics"):
+                st.session_state.cbc_topic = None
+                if "q_index" in st.session_state: del st.session_state["q_index"]
+                if "score" in st.session_state: del st.session_state["score"]
+                if "answers_log" in st.session_state: del st.session_state["answers_log"]
+                st.rerun()
+
+            if st.button("Back to Levels"):
+                st.session_state.cbc_level = None
+                st.session_state.cbc_topic = None
+                if "q_index" in st.session_state: del st.session_state["q_index"]
+                if "score" in st.session_state: del st.session_state["score"]
+                if "answers_log" in st.session_state: del st.session_state["answers_log"]
+                st.rerun()
+
+        else:
+            q = questions[st.session_state.q_index]
+
+            st.subheader(f"Question {st.session_state.q_index + 1}/{len(questions)}")
+            st.write(q["question"])
+
+            user_answer = st.text_input("Your Answer")
+
+            if st.button("Submit Answer"):
+                result = check_answer(user_answer, q["answers"])
+                topic = st.session_state.cbc_topic
+
+                # initialize topic score if not exists
+                if topic not in st.session_state.scores:
+                    st.session_state.scores[topic] = {
+                        "score": 0,
+                        "attempted": 0,
+                        "total": len(questions)
+                    }
+
+                # update attempts
+                st.session_state.scores[topic]["attempted"] += 1
+
+                # scoring
+                if result == "correct":
+                    st.session_state.score += 1
+                    st.session_state.scores[topic]["score"] += 1
+                elif result == "partial":
+                    st.session_state.score += 0.5
+                    st.session_state.scores[topic]["score"] += 0.5
+
+                # log answers
+                st.session_state.answers_log.append({
+                    "question": q["question"],
+                    "your_answer": user_answer,
+                    "correct_answers": q["answers"],
+                    "result": result
+                })
+
+                st.session_state.q_index += 1
+                st.rerun()
+
+            st.markdown("---")
+
+            if st.button("Back to Topics"):
+                st.session_state.cbc_topic = None
+                if "q_index" in st.session_state: del st.session_state["q_index"]
+                if "score" in st.session_state: del st.session_state["score"]
+                if "answers_log" in st.session_state: del st.session_state["answers_log"]
+                st.rerun()
+
+            if st.button("Back to Levels"):
+                st.session_state.cbc_level = None
+                st.session_state.cbc_topic = None
+                if "q_index" in st.session_state: del st.session_state["q_index"]
+                if "score" in st.session_state: del st.session_state["score"]
+                if "answers_log" in st.session_state: del st.session_state["answers_log"]
+                st.rerun()
+
+    st.markdown("---")
+    st.markdown("## 📊 Your Progress")
+
+    if st.session_state.scores:
+        for topic, data in st.session_state.scores.items():
+            score = data["score"]
+            total = data["total"]
+            attempted = data["attempted"]
+
+            percent = (score / total) * 100 if total > 0 else 0
+            progress_val = min(1.0, max(0.0, percent / 100))
+
+            st.write(f"**{topic}**")
+            st.write(f"Score: {score}/{total}")
+            st.write(f"Attempted: {attempted}")
+            st.progress(progress_val)
+    else:
+        st.info("No topics attempted yet.")
+
 
 # ---------- SESSION STATE ----------
 if "messages" not in st.session_state:
@@ -265,10 +450,22 @@ if "debug_level_checks" not in st.session_state:
     st.session_state.debug_level_checks = False
 if "last_debug_info" not in st.session_state:
     st.session_state.last_debug_info = None
-if "run_mode" not in st.session_state or st.session_state.run_mode not in ("Offline", "Online (Gemma 4)"):
+if "run_mode" not in st.session_state or st.session_state.run_mode not in ("Offline", "Online (Gemma 1.1)"):
     st.session_state.run_mode = "Offline"
 if "theme_mode" not in st.session_state or st.session_state.theme_mode not in ("Dark", "Light"):
     st.session_state.theme_mode = "Dark"
+
+if "mode" not in st.session_state:
+    st.session_state.mode = "chat"
+
+if "cbc_level" not in st.session_state:
+    st.session_state.cbc_level = None
+
+if "cbc_topic" not in st.session_state:
+    st.session_state.cbc_topic = None
+    
+if "scores" not in st.session_state:
+    st.session_state.scores = {}
 
 _inject_gemini_style(st.session_state.theme_mode)
 
@@ -289,12 +486,19 @@ if "warmed" not in st.session_state:
 
 # ---------- SIDEBAR ----------
 with st.sidebar:
-    st.markdown("### Arapai")
-    st.button("New chat", use_container_width=True, on_click=lambda: st.session_state.update(messages=[], edit_mode=False))
+    st.markdown("## Arapai- Offline AI Tutor")
+    if st.button("New Chat", use_container_width=True):
+       st.session_state.mode = "chat"
+       st.session_state.messages = []
+       st.session_state.edit_mode = False
+
+    if st.button("CBC-Learn", use_container_width=True):
+       st.session_state.mode = "cbc"
+    
     st.markdown("---")
     st.caption("Offline AI Tutor")
     st.selectbox("Theme", options=["Dark", "Light"], key="theme_mode")
-    st.selectbox("Mode", options=["Offline", "Online (Gemma 4)"], key="run_mode")
+    st.selectbox("Mode", options=["Offline", "Online (Gemma 1.1)"], key="run_mode")
     st.markdown("---")
     if st.session_state.run_mode == "Offline":
         st.selectbox(
@@ -304,7 +508,7 @@ with st.sidebar:
             help="Select model tier manually. Light is default for fastest and most stable startup.",
         )
     else:
-        st.info("Online mode uses `google/gemma-4-31B-it`.")
+        st.info("Online mode uses `google/gemma-1.1-7b-it`.")
     st.checkbox("Use reference documents (PDFs)", key="use_rag")
     st.markdown("---")
     st.checkbox("Debug level compliance", key="debug_level_checks")
@@ -313,7 +517,7 @@ with st.sidebar:
 st.markdown(
     """
 <div class="arapai-hero">
-  <div class="arapai-title">Arapai</div>
+  <div class="arapai-title">Arapai- Offline AI Tutor</div>
   <div class="arapai-sub">Offline tutor with adjustable explanation depth and local model control.</div>
 </div>
 """,
@@ -367,7 +571,7 @@ if st.session_state.pending_regen and not st.session_state.edit_mode:
                         prompt,
                         st.session_state.level,
                         tier,
-                        online_generate(prompt) if st.session_state.run_mode == "Online (Gemma 4)" else generate(prompt, model_tier=tier),
+                        online_generate(prompt) if st.session_state.run_mode == "Online (Gemma 1.1)" else generate(prompt, model_tier=tier),
                     )
                     st.session_state.last_debug_info = debug
                 except Exception as e:
@@ -375,6 +579,11 @@ if st.session_state.pending_regen and not st.session_state.edit_mode:
                     st.session_state.last_debug_info = {"error": str(e)}
         st.session_state.messages.append({"role": "assistant", "content": reply})
         st.rerun()
+
+
+if st.session_state.mode == "cbc":
+    render_cbc_learn()
+    st.stop()
 
 # ---------- DISPLAY CHAT ----------
 for i, msg in enumerate(st.session_state.messages):
@@ -432,7 +641,7 @@ if not st.session_state.edit_mode:
                 st.markdown(reply)
             else:
                 try:
-                    if st.session_state.run_mode == "Online (Gemma 4)":
+                    if st.session_state.run_mode == "Online (Gemma 1.1)":
                         with st.spinner("Thinking..."):
                             raw = online_generate(prompt)
                         reply, debug = _ensure_valid_reply(prompt, st.session_state.level, tier, raw)
