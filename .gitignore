@@ -39,6 +39,9 @@ logs/
 .DS_Store
 Thumbs.db
 
+# Local temp / extracted assets
+_pitch_extract/
+
 # -----------------------------
 # IDE files
 # -----------------------------

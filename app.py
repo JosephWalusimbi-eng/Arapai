@@ -279,6 +279,53 @@ def _request_regen():
     if not st.session_state.edit_mode:
         st.session_state.pending_regen = True
 
+
+def _clear_cbc_feedback_state():
+    st.session_state.cbc_pending_feedback = None
+    st.session_state.cbc_mistake_explanation = None
+
+
+def _build_cbc_mistake_user_message(question, user_answer, topic):
+    return (
+        f"I am working on the topic \"{topic}\".\n\n"
+        f"Scenario question:\n{question}\n\n"
+        f"My answer:\n{user_answer}\n\n"
+        "Explain what I misunderstood in this scenario and teach me the correct concept. "
+        "Use the scenario context. Do not quote a model answer word-for-word."
+    )
+
+
+def _generate_cbc_mistake_explanation(question, user_answer, topic):
+    user_message = _build_cbc_mistake_user_message(question, user_answer, topic)
+    rag_query = f"{topic}. {question}"
+    retrieved_text = None
+    rag_warning = None
+    if st.session_state.use_rag:
+        try:
+            retrieved_text = retrieve(rag_query)
+        except FileNotFoundError:
+            rag_warning = (
+                "Reference documents not indexed. Put PDFs in **data/raw_pdfs** or **data/rawpdfs**, "
+                "then run: `python -m ingestion.ingest_pdf`"
+            )
+
+    history = [{"role": "user", "content": user_message}]
+    prompt = build_prompt(st.session_state.level, history, retrieved_text)
+    tier = st.session_state.model_tier.lower()
+
+    try:
+        if st.session_state.run_mode == "Online (Gemma 1.1)":
+            raw = online_generate(prompt)
+        else:
+            raw = generate(prompt, model_tier=tier)
+        reply, debug = _ensure_valid_reply(prompt, st.session_state.level, tier, raw)
+        if rag_warning:
+            debug["rag_warning"] = rag_warning
+        return reply, debug
+    except Exception as e:
+        return _model_error_message(e), {"error": str(e)}
+
+
 def render_cbc_learn():
     st.title("CBC Learning Mode")
 
@@ -296,6 +343,10 @@ def render_cbc_learn():
 
         if st.button("Load Questions"):
             st.session_state.cbc_topic = topic
+            st.session_state.q_index = 0
+            st.session_state.score = 0
+            st.session_state.answers_log = []
+            _clear_cbc_feedback_state()
             st.rerun()
 
     else:
@@ -336,6 +387,7 @@ def render_cbc_learn():
                 st.session_state.q_index = 0
                 st.session_state.score = 0
                 st.session_state.answers_log = []
+                _clear_cbc_feedback_state()
                 st.rerun()
 
             if st.button("Back to Topics"):
@@ -343,6 +395,7 @@ def render_cbc_learn():
                 if "q_index" in st.session_state: del st.session_state["q_index"]
                 if "score" in st.session_state: del st.session_state["score"]
                 if "answers_log" in st.session_state: del st.session_state["answers_log"]
+                _clear_cbc_feedback_state()
                 st.rerun()
 
             if st.button("Back to Levels"):
@@ -351,6 +404,67 @@ def render_cbc_learn():
                 if "q_index" in st.session_state: del st.session_state["q_index"]
                 if "score" in st.session_state: del st.session_state["score"]
                 if "answers_log" in st.session_state: del st.session_state["answers_log"]
+                _clear_cbc_feedback_state()
+                st.rerun()
+
+        elif st.session_state.cbc_pending_feedback:
+            fb = st.session_state.cbc_pending_feedback
+            topic = st.session_state.cbc_topic
+
+            st.subheader(f"Question {st.session_state.q_index + 1}/{len(questions)}")
+            st.write(fb["question"])
+
+            if fb["result"] == "correct":
+                st.success("Correct!")
+            elif fb["result"] == "partial":
+                st.warning("Partially correct — you captured some of the idea.")
+            else:
+                st.error("Not quite right.")
+
+            st.write(f"**Your answer:** {fb['your_answer'] or '(blank)'}")
+
+            if fb["result"] in ("wrong", "partial"):
+                if st.session_state.cbc_mistake_explanation:
+                    st.markdown("### Tutor explanation")
+                    st.markdown(st.session_state.cbc_mistake_explanation)
+                    st.caption(
+                        f"Explanation level: {LEVEL_LABELS.get(st.session_state.level, st.session_state.level)}"
+                    )
+                    if st.session_state.last_debug_info and st.session_state.last_debug_info.get("rag_warning"):
+                        st.warning(st.session_state.last_debug_info["rag_warning"])
+                elif st.button("Explain my mistake", type="primary"):
+                    with st.spinner("Preparing explanation..."):
+                        explanation, debug = _generate_cbc_mistake_explanation(
+                            fb["question"],
+                            fb["your_answer"],
+                            topic,
+                        )
+                        st.session_state.cbc_mistake_explanation = explanation
+                        st.session_state.last_debug_info = debug
+                    st.rerun()
+
+            if st.button("Next question"):
+                _clear_cbc_feedback_state()
+                st.session_state.q_index += 1
+                st.rerun()
+
+            st.markdown("---")
+
+            if st.button("Back to Topics", key="cbc_back_topics_feedback"):
+                st.session_state.cbc_topic = None
+                if "q_index" in st.session_state: del st.session_state["q_index"]
+                if "score" in st.session_state: del st.session_state["score"]
+                if "answers_log" in st.session_state: del st.session_state["answers_log"]
+                _clear_cbc_feedback_state()
+                st.rerun()
+
+            if st.button("Back to Levels", key="cbc_back_levels_feedback"):
+                st.session_state.cbc_level = None
+                st.session_state.cbc_topic = None
+                if "q_index" in st.session_state: del st.session_state["q_index"]
+                if "score" in st.session_state: del st.session_state["score"]
+                if "answers_log" in st.session_state: del st.session_state["answers_log"]
+                _clear_cbc_feedback_state()
                 st.rerun()
 
         else:
@@ -392,7 +506,13 @@ def render_cbc_learn():
                     "result": result
                 })
 
-                st.session_state.q_index += 1
+                st.session_state.cbc_pending_feedback = {
+                    "question": q["question"],
+                    "your_answer": user_answer,
+                    "correct_answers": q["answers"],
+                    "result": result,
+                }
+                st.session_state.cbc_mistake_explanation = None
                 st.rerun()
 
             st.markdown("---")
@@ -402,6 +522,7 @@ def render_cbc_learn():
                 if "q_index" in st.session_state: del st.session_state["q_index"]
                 if "score" in st.session_state: del st.session_state["score"]
                 if "answers_log" in st.session_state: del st.session_state["answers_log"]
+                _clear_cbc_feedback_state()
                 st.rerun()
 
             if st.button("Back to Levels"):
@@ -410,6 +531,7 @@ def render_cbc_learn():
                 if "q_index" in st.session_state: del st.session_state["q_index"]
                 if "score" in st.session_state: del st.session_state["score"]
                 if "answers_log" in st.session_state: del st.session_state["answers_log"]
+                _clear_cbc_feedback_state()
                 st.rerun()
 
     st.markdown("---")
@@ -466,6 +588,12 @@ if "cbc_topic" not in st.session_state:
     
 if "scores" not in st.session_state:
     st.session_state.scores = {}
+
+if "cbc_pending_feedback" not in st.session_state:
+    st.session_state.cbc_pending_feedback = None
+
+if "cbc_mistake_explanation" not in st.session_state:
+    st.session_state.cbc_mistake_explanation = None
 
 _inject_gemini_style(st.session_state.theme_mode)
 
