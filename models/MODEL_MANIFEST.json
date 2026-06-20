@@ -1,0 +1,34 @@
+{
+  "audit_default_tier": "light",
+  "audit_file": "models/lite/model.gguf",
+  "note": "GGUF weights are not stored in Git. Use scripts/download_models.py or the URLs below.",
+  "models": {
+    "light": {
+      "display_name": "TinyLlama 1.1B Chat Q4_K_M",
+      "dest_path": "models/lite/model.gguf",
+      "approx_size_mb": 637,
+      "huggingface_repo": "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF",
+      "huggingface_filename": "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+      "direct_url": "https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+      "required_for_audit": true
+    },
+    "standard": {
+      "display_name": "Llama-2 7B Chat Q4_K_M",
+      "dest_path": "models/standard/model.gguf",
+      "approx_size_mb": 3900,
+      "huggingface_repo": "TheBloke/Llama-2-7B-Chat-GGUF",
+      "huggingface_filename": "llama-2-7b-chat.Q4_K_M.gguf",
+      "direct_url": "https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf",
+      "required_for_audit": false
+    },
+    "advanced": {
+      "display_name": "Mistral 7B Instruct v0.2 Q4_K_M",
+      "dest_path": "models/advanced/model.gguf",
+      "approx_size_mb": 4100,
+      "huggingface_repo": "TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
+      "huggingface_filename": "mistral-7b-instruct-v0.2.Q4_K_M.gguf",
+      "direct_url": "https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_K_M.gguf",
+      "required_for_audit": false
+    }
+  }
+}

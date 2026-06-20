@@ -16,12 +16,13 @@ Arapai now features a **Warm Theme** designed for comfortable, long-term learnin
    pip install -r requirements.txt
    ```
    This single command installs everything needed to run on any device (CPU). No other pip steps required.
-2. **Add a GGUF model**: put `model.gguf` in one of:
-   - `models/lite/` (any RAM)
-   - `models/standard/` (4+ GB free RAM)
-   - `models/advanced/` (8+ GB free RAM)
-   Prefer **Q4_K_M** or **Q5_K_M** quantized models for speed. See `models/README.md` for exact download links.
-3. **Run**:
+2. **Download the audit model** (not in Git):
+   ```bash
+   bash download_model.sh
+   ```
+   On Windows: `python scripts/download_models.py` (syncs the same ADTC `model/` path).
+3. **Fill `metadata.json`** — replace `FILL_*` placeholders before DevPost submission.
+4. **Run**:
    ```bash
    streamlit run app.py
    ```

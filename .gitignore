@@ -52,15 +52,24 @@ _pitch_extract/
 # AI / Machine Learning
 # -----------------------------
 
-# Model files
-models/
+# ADTC submission template — model weights (not in Git)
+model/
+model/**/*.gguf
+*.gguf
+
+# App model tiers (optional; same weights as ADTC path for Light tier)
+models/**/model.gguf
+models/**/*.gguf
+!models/README.md
+!models/MODEL_MANIFEST.json
+!models/**/.gitkeep
+
 checkpoints/
 *.ckpt
 *.pt
 *.pth
 *.bin
 *.onnx
-*.gguf
 
 # Vector databases
 vector_db/
@@ -84,6 +93,9 @@ datasets/
 embeddings/
 *.npy
 *.npz
+
+# Benchmark output
+benchmark_results.json
 
 # Cache
 .cache/

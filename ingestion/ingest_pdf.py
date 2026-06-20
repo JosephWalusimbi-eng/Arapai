@@ -3,7 +3,7 @@ from sentence_transformers import SentenceTransformer
 import faiss
 import pickle
 import os
-from chunker import chunk_text
+from ingestion.chunker import chunk_text
 
 # Support both folder names (app message mentions raw_pdfs and rawpdfs)
 PDF_DIRS = ["data/raw_pdfs", "data/rawpdfs"]

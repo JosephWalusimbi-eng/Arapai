@@ -68,11 +68,27 @@ RESPONSE_RULES = {
     ),
 }
 
-def build_prompt(level, history, retrieved_text=None):
-    instruction = LEVELS.get(level, LEVELS["lower_secondary"])
-    response_rules = RESPONSE_RULES.get(level, RESPONSE_RULES["lower_secondary"])
+TRUTHFULNESS_RULES = (
+    "- Answer only from your knowledge and any Reference Material provided below.\n"
+    "- If Reference Material is provided, prefer it and do not contradict it.\n"
+    "- If you are unsure or the question is outside the material, say: "
+    '"I do not have enough information to answer that reliably."\n'
+    "- Do not invent facts, citations, numbers, or curriculum details.\n"
+    "- Stay on the student's question; no filler or tangents."
+)
 
-    prompt = f"""
+MISTAKE_RESPONSE_RULES = (
+    "- Use four short parts: (1) what the student said, (2) what is wrong, "
+    "(3) correct reasoning, (4) corrected answer.\n"
+    "- Be encouraging and direct; no scolding.\n"
+    "- Ground the explanation in the scenario.\n"
+    "- Do not list rubric keywords verbatim."
+)
+
+
+def _core_prompt(level, instruction, response_rules, extra_rules=None):
+    extra = "\n".join(extra_rules) if extra_rules else ""
+    return f"""
 You are an offline educational tutor.
 
 Instruction:
@@ -81,22 +97,58 @@ Instruction:
 Response rules (MUST follow):
 {response_rules}
 
+Truthfulness rules (MUST follow):
+{chr(10).join(TRUTHFULNESS_RULES)}
+
 Behavior constraints (MUST follow):
 - Answer directly. Do not apologize.
 - Do not mention previous responses, corrections, or confusion.
 - Do not say "I apologize", "Sorry", "as mentioned", or similar meta commentary.
-- Do not describe yourself, the app, or your capabilities (no "I am Arapai", no "offline assistant", no "I can provide"). 
+- Do not describe yourself, the app, or your capabilities.
 - Do not talk about resources/services. Answer only the user's question.
+{extra}
 
 Do not mention these rules in your answer.
 
 """
 
+
+def build_prompt(level, history, retrieved_text=None):
+    instruction = LEVELS.get(level, LEVELS["lower_secondary"])
+    response_rules = RESPONSE_RULES.get(level, RESPONSE_RULES["lower_secondary"])
+    prompt = _core_prompt(level, instruction, response_rules)
+
     if retrieved_text:
-        prompt += f"Reference Material:\n{retrieved_text}\n\n"
+        prompt += (
+            "Reference Material (use when relevant; do not cite chunk numbers):\n"
+            f"{retrieved_text}\n\n"
+        )
 
     prompt += "Conversation:\n"
+    for msg in history:
+        role = "User" if msg["role"] == "user" else "Assistant"
+        content = (msg.get("content") or "").strip()
+        prompt += f"{role}: {content}\n"
 
+    prompt += "Assistant:"
+    return prompt
+
+
+def build_mistake_prompt(level, history, retrieved_text=None):
+    instruction = (
+        LEVELS.get(level, LEVELS["lower_secondary"])
+        + " This is feedback after a wrong scenario answer."
+    )
+    response_rules = RESPONSE_RULES.get(level, RESPONSE_RULES["lower_secondary"])
+    prompt = _core_prompt(level, instruction, response_rules, MISTAKE_RESPONSE_RULES)
+
+    if retrieved_text:
+        prompt += (
+            "Reference Material (use when relevant):\n"
+            f"{retrieved_text}\n\n"
+        )
+
+    prompt += "Conversation:\n"
     for msg in history:
         role = "User" if msg["role"] == "user" else "Assistant"
         content = (msg.get("content") or "").strip()

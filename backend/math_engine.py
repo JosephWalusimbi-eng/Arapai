@@ -12,6 +12,11 @@ _OPS = {
     "/": operator.truediv,
 }
 
+_EXPR_IN_TEXT = re.compile(
+    r"(?:what is|calculate|compute|evaluate|solve)\s+([\d\s+\-*/().]+?)(?:\?|\.|\s+then|\s*$)",
+    re.IGNORECASE,
+)
+
 
 def solve(expression):
     if not expression or not isinstance(expression, str):
@@ -23,9 +28,91 @@ def solve(expression):
     if not re.fullmatch(r"[\d\s+\-*/().]+", expr):
         return None
     try:
-        return _eval_expr(_tokenize(expr))
+        value = _eval_expr(_tokenize(expr))
+        if value is None:
+            return None
+        if float(value).is_integer():
+            return int(value)
+        return round(float(value), 6)
     except (ValueError, ZeroDivisionError, IndexError):
         return None
+
+
+def extract_expression(text):
+    """Return the first safe arithmetic sub-expression found in a question."""
+    if not text:
+        return None
+    for match in _EXPR_IN_TEXT.finditer(text):
+        cleaned = (match.group(1) or "").strip().strip("?.,")
+        if cleaned and solve(cleaned) is not None:
+            return cleaned
+    return None
+
+
+def build_mixed_math_reply(level, user_text, math_result):
+    """Deterministic answer for calculate-then-explain prompts (demo-safe on Light tier)."""
+    expr = extract_expression(user_text) or str(math_result)
+    result = math_result
+
+    if level == "basic":
+        return (
+            f"The answer is {result}. "
+            "Do multiplication and division before addition and subtraction."
+        )
+
+    if level == "lower_secondary":
+        return (
+            f"{expr} = {result}. "
+            "Order of operations means brackets first, then multiplication and division, "
+            "then addition and subtraction."
+        )
+
+    if level == "upper_secondary":
+        return (
+            f"Evaluating {expr}: division and multiplication are done before addition, "
+            f"so the result is {result}. "
+            "Order of operations (PEMDAS/BODMAS) keeps everyone calculating the same way: "
+            "parentheses, then × and ÷, then + and −."
+        )
+
+    steps = (
+        f"1. Parse the expression {expr} and identify operator precedence.\n"
+        "2. Evaluate division and multiplication before addition.\n"
+        f"3. Combine the intermediate values to obtain {result}.\n"
+        "4. Order of operations (PEMDAS/BODMAS) prevents ambiguity by fixing precedence rules."
+    )
+    return (
+        f"The result of {expr} is {result}. "
+        "Technical evaluation applies operator precedence: parentheses, then multiplication/division, "
+        "then addition/subtraction.\n"
+        f"{steps}"
+    )
+
+
+def solve_in_text(text):
+    """Return a numeric result when a safe expression appears inside a question."""
+    if not text or not isinstance(text, str):
+        return None
+
+    direct = solve(text.strip())
+    if direct is not None:
+        return direct
+
+    candidates = []
+    for match in _EXPR_IN_TEXT.finditer(text):
+        cleaned = (match.group(1) or "").strip().strip("?.,")
+        if cleaned:
+            candidates.append(cleaned)
+
+    if not candidates:
+        return None
+
+    candidates.sort(key=len, reverse=True)
+    for candidate in candidates:
+        result = solve(candidate)
+        if result is not None:
+            return result
+    return None
 
 
 def _tokenize(s):

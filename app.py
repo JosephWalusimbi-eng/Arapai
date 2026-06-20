@@ -1,8 +1,14 @@
-import re
 import streamlit as st
-from backend.llm_engine import warm_up, generate, generate_stream
+from backend.cbc_engine import (
+    build_curated_mistake_explanation,
+    build_mistake_prompt_for_level,
+    check_answer as cbc_check_answer,
+)
+from backend.llm_engine import generate
+from backend.memory_utils import log_memory_usage, memory_summary, peak_rss_mb
 from backend.online_gemma import generate as online_generate
-from backend.math_engine import solve
+from backend.demo_replies import SAMPLE_PROMPTS, get_curated_demo_reply
+from backend.math_engine import solve, solve_in_text, build_mixed_math_reply
 from backend.prompt_builder import (
     LEVEL_HINTS,
     LEVEL_LABELS,
@@ -10,39 +16,18 @@ from backend.prompt_builder import (
     LEVELS,
     build_prompt,
 )
-from backend.rag_engine import retrieve
+from backend.rag_engine import retrieve, unload_resources as unload_rag
+from backend.tutor_engine import ensure_valid_reply
 
 st.set_page_config(page_title="Arapai- Offline AI Tutor", layout="wide")
 
 
 import json
 import os
+import re
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(BASE_DIR, "data", "cbc_content.json")
-
-def check_answer(user_answer, correct_answers):
-    import re
-
-    def clean(text):
-        return re.sub(r'[^\w\s]', '', text.lower()).split()
-
-    user_words = set(clean(user_answer))
-
-    best_score = 0
-    for ans in correct_answers:
-        ans_words = set(clean(ans))
-        if len(ans_words) == 0:
-            continue
-        score = len(user_words & ans_words) / len(ans_words)
-        best_score = max(best_score, score)
-
-    if best_score >= 0.5:
-        return "correct"
-    elif best_score >= 0.3:
-        return "partial"
-    else:
-        return "wrong"
 
 with open(DATA_PATH, "r") as f:
     cbc_content = json.load(f)
@@ -52,41 +37,200 @@ def _inject_gemini_style(theme_mode):
     if theme_mode == "Light":
         css = """
 <style>
-.stApp { background: #ffffff; color: #31333f; }
-section[data-testid="stSidebar"] { background: #f0f2f6; border-right: 0px solid transparent; }
-section[data-testid="stSidebar"] * { color: #31333f !important; }
-.arapai-hero { padding: 0.2rem 0 0.6rem 0.1rem; }
-.arapai-title { font-size: 1.9rem; font-weight: 700; line-height: 1.2; margin-bottom: .25rem; color: #000000; }
-.arapai-sub { color: #555555; font-size: 1rem; }
-.stSelectbox label, .stCheckbox label, .stCaption { color: #31333f !important; }
-.st-emotion-cache-1y4p8pa { max-width: 900px; }
-[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
-  background: #ffffff !important;
-  border: 1px solid #e6e9ef !important;
-  color: #31333f !important;
-  border-radius: 14px !important;
-}
-[data-testid="stChatInput"] > div {
-  border-radius: 28px !important;
-  border: 1px solid #e6e9ef !important;
-  background: #ffffff !important;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.08) !important;
-}
-[data-testid="stChatInput"] input {
-  color: #31333f !important;
-}
-[data-testid="stChatMessage"] { background: transparent !important; border: 0 !important; }
-[data-testid="stChatMessageContent"],
-[data-testid="stChatMessageContent"] p,
-[data-testid="stChatMessageContent"] li {
-  color: #31333f !important;
-}
-[data-testid="stChatMessageAvatar"] { display: none !important; }
-[data-testid="stCheckbox"] label span {
-  color: #31333f !important;
+:root {
+  --arapai-bg: #fdfaf6;
+  --arapai-surface: #ffffff;
+  --arapai-sidebar: #f5f0ea;
+  --arapai-text: #1a1614;
+  --arapai-muted: #5c534a;
+  --arapai-border: #e8dfd4;
+  --arapai-accent: #26a688;
+  --arapai-accent-hover: #1f8a72;
 }
 
-/* Reduce Streamlit chrome for a cleaner Gemini-like canvas */
+.stApp,
+[data-testid="stAppViewContainer"] {
+  background: var(--arapai-bg) !important;
+  color: var(--arapai-text) !important;
+}
+
+section[data-testid="stSidebar"] {
+  background: var(--arapai-sidebar) !important;
+  border-right: 1px solid var(--arapai-border) !important;
+}
+
+section[data-testid="stSidebar"] .stMarkdown,
+section[data-testid="stSidebar"] .stMarkdown p,
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] .stCaption,
+section[data-testid="stSidebar"] [data-testid="stWidgetLabel"],
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3,
+section[data-testid="stSidebar"] h4,
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h1,
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h2,
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3,
+section[data-testid="stSidebar"] [data-testid="stHeading"],
+section[data-testid="stSidebar"] [data-testid="stHeading"] * {
+  color: var(--arapai-text) !important;
+}
+
+.arapai-sidebar-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0 0 0.35rem 0;
+  color: var(--arapai-text) !important;
+}
+
+.arapai-sidebar-caption {
+  color: var(--arapai-muted) !important;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+section[data-testid="stSidebar"] hr,
+section[data-testid="stSidebar"] [data-testid="stDivider"] {
+  border-color: var(--arapai-border) !important;
+  opacity: 1 !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="select"] > div,
+section[data-testid="stSidebar"] [data-baseweb="select"] span,
+section[data-testid="stSidebar"] [data-baseweb="select"] input {
+  color: var(--arapai-text) !important;
+  background: var(--arapai-surface) !important;
+}
+
+.arapai-hero { padding: 0.2rem 0 0.6rem 0.1rem; }
+.arapai-title {
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: .25rem;
+  color: var(--arapai-text) !important;
+}
+.arapai-sub { color: var(--arapai-muted) !important; font-size: 1rem; }
+
+.stSelectbox label,
+.stCheckbox label,
+.stCaption,
+[data-testid="stWidgetLabel"],
+p, li, span, label {
+  color: var(--arapai-text);
+}
+
+.st-emotion-cache-1y4p8pa { max-width: 900px; }
+
+[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+  background: var(--arapai-surface) !important;
+  border: 1px solid var(--arapai-border) !important;
+  color: var(--arapai-text) !important;
+  border-radius: 12px !important;
+}
+
+/* Buttons — light surfaces, readable text */
+.stButton > button,
+[data-testid="stBaseButton-secondary"],
+[data-testid="baseButton-secondary"] {
+  background: var(--arapai-surface) !important;
+  color: var(--arapai-text) !important;
+  border: 1px solid var(--arapai-border) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 1px 2px rgba(26, 22, 20, 0.06) !important;
+}
+
+.stButton > button:hover,
+[data-testid="stBaseButton-secondary"]:hover,
+[data-testid="baseButton-secondary"]:hover {
+  background: #fff8f0 !important;
+  border-color: var(--arapai-accent) !important;
+  color: var(--arapai-text) !important;
+}
+
+.stButton > button p,
+.stButton > button span,
+.stButton > button div,
+[data-testid="stBaseButton-secondary"] p,
+[data-testid="stBaseButton-secondary"] span,
+[data-testid="baseButton-secondary"] p,
+[data-testid="baseButton-secondary"] span {
+  color: var(--arapai-text) !important;
+}
+
+.stButton > button[kind="primary"],
+[data-testid="stBaseButton-primary"],
+[data-testid="baseButton-primary"] {
+  background: var(--arapai-accent) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--arapai-accent) !important;
+}
+
+.stButton > button[kind="primary"] p,
+.stButton > button[kind="primary"] span,
+[data-testid="stBaseButton-primary"] p,
+[data-testid="stBaseButton-primary"] span {
+  color: #ffffff !important;
+}
+
+section[data-testid="stSidebar"] .stButton > button {
+  background: var(--arapai-surface) !important;
+  color: var(--arapai-text) !important;
+}
+
+/* Chat area — no black footer bar */
+[data-testid="stBottomBlockContainer"],
+[data-testid="stBottom"],
+[data-testid="stChatInputContainer"] {
+  background: var(--arapai-bg) !important;
+}
+
+[data-testid="stChatInput"] > div {
+  border-radius: 24px !important;
+  border: 1px solid var(--arapai-border) !important;
+  background: var(--arapai-surface) !important;
+  box-shadow: 0 2px 8px rgba(26, 22, 20, 0.06) !important;
+}
+
+[data-testid="stChatInput"] textarea,
+[data-testid="stChatInput"] input {
+  color: var(--arapai-text) !important;
+  background: transparent !important;
+}
+
+[data-testid="stChatInput"] textarea::placeholder {
+  color: var(--arapai-muted) !important;
+}
+
+[data-testid="stChatMessage"] {
+  background: var(--arapai-surface) !important;
+  border: 1px solid var(--arapai-border) !important;
+  border-radius: 12px !important;
+}
+
+[data-testid="stChatMessageContent"],
+[data-testid="stChatMessageContent"] *,
+[data-testid="stChatMessageContent"] p,
+[data-testid="stChatMessageContent"] li,
+[data-testid="stChatMessageContent"] span,
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] li,
+[data-testid="stMarkdownContainer"] span {
+  color: var(--arapai-text) !important;
+}
+
+[data-testid="stChatMessageAvatar"] { display: none !important; }
+
+[data-testid="stCheckbox"] label span {
+  color: var(--arapai-text) !important;
+}
+
+/* Alerts */
+[data-testid="stAlert"] {
+  border-radius: 10px !important;
+}
+
 header, footer { visibility: hidden; }
 [data-testid="stToolbar"] { visibility: hidden; height: 0px; }
 </style>
@@ -121,6 +265,33 @@ section[data-testid="stSidebar"] * { color: #fafafa !important; }
     st.markdown(css, unsafe_allow_html=True)
 
 
+def _coerce_reply(reply):
+    text = (reply or "").strip()
+    if text:
+        return text
+    return (
+        "I could not generate a response. "
+        "Activate the project venv, ensure the model is downloaded, then try again."
+    )
+
+
+def _check_offline_runtime():
+    try:
+        import llama_cpp  # noqa: F401
+    except ImportError:
+        return (
+            "Missing `llama_cpp`. Activate the venv first:\n"
+            "`.\venv\\Scripts\\Activate.ps1` then `streamlit run app.py`"
+        )
+    try:
+        from backend.llm_engine import get_model_path
+
+        get_model_path("light")
+    except RuntimeError as exc:
+        return str(exc)
+    return None
+
+
 def _model_error_message(exc):
     err = f"{type(exc).__name__}: {exc!s}" if str(exc).strip() else f"{type(exc).__name__}"
     if "HF token missing" in err:
@@ -133,146 +304,163 @@ def _model_error_message(exc):
     return f"Sorry, the model could not respond: {err}"
 
 
-def _word_count(text):
-    return len(re.findall(r"\b\w+\b", text or ""))
+def _offline_generate(prompt, model_tier=None, max_tokens=256):
+    return generate(prompt, max_tokens=max_tokens, model_tier=model_tier)
 
 
-def _sentence_count(text):
-    return len([p for p in re.split(r"[.!?]+", text or "") if p.strip()])
-
-
-def _numbered_steps_count(text):
-    return len(re.findall(r"(?m)^\s*\d+[.)]\s+\S+", text or ""))
-
-
-BANNED_PHRASES = (
-    "i apologize",
-    "sorry",
-    "apologies",
-    "as mentioned",
-    "as i mentioned",
-    "earlier response",
-    "previous response",
-    "confusion earlier",
-    "new opportunity",
-    "accurate and comprehensive explanation",
-    "let me provide",
-    "i can provide",
-    "i am arapai",
-    "arapai is",
-    "offline assistant",
-    "research assistant",
-    "as an ai",
-    "as a language model",
-    "capabilities",
-    "resources",
-    "services",
-)
-
-
-def _is_meta_response(text):
-    lower_text = (text or "").lower()
-    if not lower_text.strip():
-        return True
-    return any(phrase in lower_text for phrase in BANNED_PHRASES)
-
-
-def _is_level_compliant(level, text):
-    words = _word_count(text)
-    steps = _numbered_steps_count(text)
-    if _is_meta_response(text):
-        return False
-
-    # Keep checks permissive enough to avoid over-correction.
-    if words < 8:
-        return False
-    sents = _sentence_count(text)
-    # Keep these permissive so we don't reject good answers.
-    if level == "basic":
-        return 1 <= sents <= 2 and words <= 60 and steps == 0
-    if level == "lower_secondary":
-        return 1 <= sents <= 5 and 15 <= words <= 220 and steps == 0
-    if level == "upper_secondary":
-        return 30 <= words <= 380
-    if level == "technical":
-        return words >= 60
-    return True
-
-
-def _regenerate_for_level(prompt, level, model_tier):
-    compliance_hint = (
-        "\n\nIMPORTANT RETRY RULE:\n"
-        f"Your previous answer did not satisfy level='{level}'. "
-        "Regenerate and strictly follow all response rules, including format and length. "
-        "Do not apologize and do not reference previous answers. "
-        "Answer only the user's latest question directly."
-    )
+def _tutor_generate(prompt, model_tier=None, max_tokens=256):
     if st.session_state.run_mode == "Online (Gemma 1.1)":
-        return online_generate(prompt + compliance_hint)
-    return generate(prompt + compliance_hint, model_tier=model_tier)
+        return online_generate(prompt, max_tokens=max_tokens)
+    return _offline_generate(prompt, model_tier=model_tier, max_tokens=max_tokens)
 
 
 def _ensure_valid_reply(prompt, level, model_tier, reply):
-    debug = {
-        "selected_level": level,
-        "initial_compliant": False,
-        "retry_used": False,
-        "retry_compliant": False,
-        "final_compliant": False,
-        "result_source": "none",
-        "initial_words": 0,
-        "initial_sentences": 0,
-        "initial_steps": 0,
-        "retry_words": 0,
-        "retry_sentences": 0,
-        "retry_steps": 0,
-    }
-    reply = (reply or "").strip()
-    debug["initial_words"] = _word_count(reply)
-    debug["initial_sentences"] = _sentence_count(reply)
-    debug["initial_steps"] = _numbered_steps_count(reply)
-    debug["initial_compliant"] = bool(reply and _is_level_compliant(level, reply))
-    if debug["initial_compliant"]:
-        debug["final_compliant"] = True
-        debug["result_source"] = "initial"
-        return reply, debug
+    return ensure_valid_reply(prompt, level, model_tier, reply, _tutor_generate)
 
-    debug["retry_used"] = True
-    retry = _regenerate_for_level(prompt, level, model_tier).strip()
-    debug["retry_words"] = _word_count(retry)
-    debug["retry_sentences"] = _sentence_count(retry)
-    debug["retry_steps"] = _numbered_steps_count(retry)
-    debug["retry_compliant"] = bool(retry and _is_level_compliant(level, retry))
-    if debug["retry_compliant"]:
-        debug["final_compliant"] = True
-        debug["result_source"] = "retry"
-        return retry, debug
 
-    # If we have a non-compliant answer but it's not meta/system/apology text, return it.
-    if retry and not _is_meta_response(retry):
-        debug["final_compliant"] = False
-        debug["result_source"] = "retry_noncompliant"
-        return retry, debug
-    if reply and not _is_meta_response(reply):
-        debug["final_compliant"] = False
-        debug["result_source"] = "initial_noncompliant"
-        return reply, debug
+def _build_assistant_reply(user_text, conversation_history=None):
+    runtime_error = _check_offline_runtime()
+    if runtime_error and st.session_state.run_mode == "Offline":
+        st.session_state.last_debug_info = {"error": runtime_error}
+        return runtime_error, None
 
-    # Otherwise, do a stricter final retry to avoid meta/apology replies.
-    final = generate(
-        prompt
-        + "\n\nFINAL RETRY RULE:\n"
-        + "Answer the latest user question directly at the selected level. "
-        + "No apology, no meta commentary. Do not describe yourself or the system; explain the topic only.",
-        model_tier=model_tier,
-    ).strip()
-    if final:
-        debug["final_compliant"] = _is_level_compliant(level, final)
-        debug["result_source"] = "final_retry"
-        return final, debug
-    debug["final_compliant"] = False
-    debug["result_source"] = "hard_fallback"
-    return "I could not generate a valid explanation. Please ask again.", debug
+    history = (
+        conversation_history
+        if conversation_history is not None
+        else st.session_state.messages[-6:]
+    )
+    math_result = solve_in_text(user_text)
+    retrieved_text, rag_warning = _retrieve_if_enabled(user_text)
+    if st.session_state.use_rag:
+        unload_rag()
+    wants_explanation = bool(re.search(r"\b(then|explain|why|how)\b", user_text, re.I))
+    tier = st.session_state.model_tier.lower()
+    log_memory_usage("before_inference")
+
+    if math_result is not None and wants_explanation:
+        reply = build_mixed_math_reply(st.session_state.level, user_text, math_result)
+        st.session_state.last_debug_info = {
+            "selected_level": st.session_state.level,
+            "initial_compliant": True,
+            "retry_used": False,
+            "retry_compliant": False,
+            "final_compliant": True,
+            "result_source": "math_explain",
+        }
+        return reply, rag_warning
+
+    curated = get_curated_demo_reply(user_text, st.session_state.level)
+    if curated:
+        st.session_state.last_debug_info = {
+            "selected_level": st.session_state.level,
+            "initial_compliant": True,
+            "retry_used": False,
+            "retry_compliant": False,
+            "final_compliant": True,
+            "result_source": "demo_curated",
+        }
+        return curated, rag_warning
+
+    prompt = build_prompt(st.session_state.level, history, retrieved_text)
+
+    if math_result is not None and not wants_explanation:
+        reply = f"The result is {math_result}."
+        st.session_state.last_debug_info = {
+            "selected_level": st.session_state.level,
+            "initial_compliant": True,
+            "retry_used": False,
+            "retry_compliant": False,
+            "final_compliant": True,
+            "result_source": "math",
+        }
+        return reply, rag_warning
+
+    try:
+        if st.session_state.run_mode == "Online (Gemma 1.1)":
+            raw = online_generate(prompt)
+        else:
+            raw = generate(prompt, model_tier=tier)
+            if not (raw or "").strip():
+                raw = generate(prompt, model_tier=tier)
+        reply, debug = _ensure_valid_reply(prompt, st.session_state.level, tier, raw)
+        st.session_state.last_debug_info = debug
+        return reply, rag_warning
+    except Exception as exc:
+        st.session_state.last_debug_info = {"error": str(exc)}
+        return _model_error_message(exc), rag_warning
+
+
+def _pending_assistant_user_text():
+    if st.session_state.edit_mode or st.session_state.mode != "chat":
+        return None
+    msgs = st.session_state.messages
+    if msgs and msgs[-1]["role"] == "user":
+        return msgs[-1]["content"]
+    return None
+
+
+def _regenerate_all_assistant_replies():
+    spinner_msg = (
+        "Regenerating all replies at the selected explanation level… "
+        "This may take a few minutes offline."
+        if st.session_state.run_mode == "Offline"
+        else "Regenerating all replies at the selected explanation level…"
+    )
+    with st.spinner(spinner_msg):
+        rebuilt = []
+        pending_rag_warning = None
+        for msg in st.session_state.messages:
+            if msg["role"] == "user":
+                rebuilt.append(msg)
+                continue
+            if msg["role"] != "assistant":
+                rebuilt.append(msg)
+                continue
+            user_text = rebuilt[-1]["content"] if rebuilt and rebuilt[-1]["role"] == "user" else None
+            if not user_text:
+                rebuilt.append(msg)
+                continue
+            history = rebuilt[-6:]
+            reply, rag_warning = _build_assistant_reply(user_text, conversation_history=history)
+            if rag_warning:
+                pending_rag_warning = rag_warning
+            rebuilt.append({"role": "assistant", "content": _coerce_reply(reply)})
+        st.session_state.messages = rebuilt
+        if pending_rag_warning:
+            st.session_state._pending_rag_warning = pending_rag_warning
+
+
+def _complete_assistant_reply(user_text):
+    spinner_msg = (
+        "Loading local model and generating answer… "
+        "The first reply can take 1–2 minutes."
+        if st.session_state.run_mode == "Offline"
+        else "Thinking…"
+    )
+    with st.spinner(spinner_msg):
+        reply, rag_warning = _build_assistant_reply(user_text)
+    if rag_warning:
+        st.session_state._pending_rag_warning = rag_warning
+    st.session_state.messages.append({"role": "assistant", "content": _coerce_reply(reply)})
+
+
+def _retrieve_if_enabled(query):
+    if not st.session_state.use_rag:
+        return None, None
+    try:
+        chunks = retrieve(query)
+        if not (chunks or "").strip():
+            return None, (
+                "RAG is on, but no relevant excerpts matched this question in the indexed PDFs."
+            )
+        return chunks, None
+    except FileNotFoundError:
+        return None, (
+            "Reference documents not indexed. Put PDFs in **data/raw_pdfs**, "
+            "then run: `python -m ingestion.ingest_pdf`"
+        )
+    except Exception as exc:
+        return None, f"RAG could not load: {exc}"
 
 
 def _request_regen():
@@ -280,50 +468,78 @@ def _request_regen():
         st.session_state.pending_regen = True
 
 
+def _sync_explanation_level_change():
+    prev = st.session_state.get("_prev_explanation_level")
+    current = st.session_state.level
+    if prev is None:
+        st.session_state._prev_explanation_level = current
+        return
+    if prev == current or st.session_state.edit_mode or st.session_state.mode != "chat":
+        st.session_state._prev_explanation_level = current
+        return
+    st.session_state._prev_explanation_level = current
+    if any(m.get("role") == "assistant" for m in st.session_state.messages):
+        st.session_state.pending_regen_all = True
+
+
 def _clear_cbc_feedback_state():
     st.session_state.cbc_pending_feedback = None
     st.session_state.cbc_mistake_explanation = None
 
 
-def _build_cbc_mistake_user_message(question, user_answer, topic):
-    return (
-        f"I am working on the topic \"{topic}\".\n\n"
-        f"Scenario question:\n{question}\n\n"
-        f"My answer:\n{user_answer}\n\n"
-        "Explain what I misunderstood in this scenario and teach me the correct concept. "
-        "Use the scenario context. Do not quote a model answer word-for-word."
+def _generate_cbc_mistake_explanation(question, user_answer, topic, correct_answers):
+    tier = st.session_state.model_tier.lower()
+    log_memory_usage("cbc_explain_start")
+
+    if st.session_state.run_mode == "Offline":
+        reply = build_curated_mistake_explanation(
+            st.session_state.level,
+            question,
+            user_answer,
+            topic,
+            correct_answers,
+        )
+        debug = {
+            "selected_level": st.session_state.level,
+            "initial_compliant": True,
+            "retry_used": False,
+            "retry_compliant": False,
+            "final_compliant": True,
+            "result_source": "cbc_curated",
+            "memory": memory_summary(),
+        }
+        return reply, debug
+
+    rag_query = f"{topic}. {question}"
+    retrieved_text, rag_warning = _retrieve_if_enabled(rag_query)
+    if st.session_state.use_rag:
+        unload_rag()
+    prompt = build_mistake_prompt_for_level(
+        st.session_state.level,
+        question,
+        user_answer,
+        topic,
+        correct_answers,
+        retrieved_text,
     )
 
-
-def _generate_cbc_mistake_explanation(question, user_answer, topic):
-    user_message = _build_cbc_mistake_user_message(question, user_answer, topic)
-    rag_query = f"{topic}. {question}"
-    retrieved_text = None
-    rag_warning = None
-    if st.session_state.use_rag:
-        try:
-            retrieved_text = retrieve(rag_query)
-        except FileNotFoundError:
-            rag_warning = (
-                "Reference documents not indexed. Put PDFs in **data/raw_pdfs** or **data/rawpdfs**, "
-                "then run: `python -m ingestion.ingest_pdf`"
-            )
-
-    history = [{"role": "user", "content": user_message}]
-    prompt = build_prompt(st.session_state.level, history, retrieved_text)
-    tier = st.session_state.model_tier.lower()
-
     try:
-        if st.session_state.run_mode == "Online (Gemma 1.1)":
-            raw = online_generate(prompt)
-        else:
-            raw = generate(prompt, model_tier=tier)
+        raw = _tutor_generate(prompt, model_tier=tier)
         reply, debug = _ensure_valid_reply(prompt, st.session_state.level, tier, raw)
         if rag_warning:
             debug["rag_warning"] = rag_warning
+        debug["memory"] = memory_summary()
+        debug["result_source"] = debug.get("result_source", "llm")
         return reply, debug
     except Exception as e:
-        return _model_error_message(e), {"error": str(e)}
+        reply = build_curated_mistake_explanation(
+            st.session_state.level,
+            question,
+            user_answer,
+            topic,
+            correct_answers,
+        )
+        return reply, {"error": str(e), "result_source": "cbc_curated_fallback"}
 
 
 def render_cbc_learn():
@@ -438,9 +654,10 @@ def render_cbc_learn():
                             fb["question"],
                             fb["your_answer"],
                             topic,
+                            fb["correct_answers"],
                         )
-                        st.session_state.cbc_mistake_explanation = explanation
-                        st.session_state.last_debug_info = debug
+                    st.session_state.cbc_mistake_explanation = explanation
+                    st.session_state.last_debug_info = debug
                     st.rerun()
 
             if st.button("Next question"):
@@ -476,7 +693,15 @@ def render_cbc_learn():
             user_answer = st.text_input("Your Answer")
 
             if st.button("Submit Answer"):
-                result = check_answer(user_answer, q["answers"])
+                tier = st.session_state.model_tier.lower()
+                gen_fn = _offline_generate if st.session_state.run_mode == "Offline" else None
+                result, keyword_score = cbc_check_answer(
+                    user_answer,
+                    q["answers"],
+                    question=q["question"],
+                    generate_fn=gen_fn,
+                    model_tier=tier,
+                )
                 topic = st.session_state.cbc_topic
 
                 # initialize topic score if not exists
@@ -503,7 +728,8 @@ def render_cbc_learn():
                     "question": q["question"],
                     "your_answer": user_answer,
                     "correct_answers": q["answers"],
-                    "result": result
+                    "result": result,
+                    "keyword_score": keyword_score,
                 })
 
                 st.session_state.cbc_pending_feedback = {
@@ -557,8 +783,10 @@ def render_cbc_learn():
 # ---------- SESSION STATE ----------
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "level" not in st.session_state or st.session_state.level not in LEVELS:
+if "level" not in st.session_state or st.session_state.level not in LEVEL_ORDER:
     st.session_state.level = "lower_secondary"
+if "_prev_explanation_level" not in st.session_state:
+    st.session_state._prev_explanation_level = st.session_state.level
 MODEL_TIERS = ["Light", "Standard", "Advanced"]
 if "model_tier" not in st.session_state or st.session_state.model_tier not in MODEL_TIERS:
     st.session_state.model_tier = "Light"
@@ -566,6 +794,8 @@ if "edit_mode" not in st.session_state:
     st.session_state.edit_mode = False
 if "pending_regen" not in st.session_state:
     st.session_state.pending_regen = False
+if "pending_regen_all" not in st.session_state:
+    st.session_state.pending_regen_all = False
 if "use_rag" not in st.session_state:
     st.session_state.use_rag = False
 if "debug_level_checks" not in st.session_state:
@@ -596,25 +826,20 @@ if "cbc_mistake_explanation" not in st.session_state:
     st.session_state.cbc_mistake_explanation = None
 
 _inject_gemini_style(st.session_state.theme_mode)
-
-if "warmed" not in st.session_state:
-    try:
-        warm_up(st.session_state.model_tier.lower())
-        st.session_state.warmed = True
-    except Exception as e:
-        st.error(_model_error_message(e))
-        st.info(
-            "Make sure you have a valid GGUF file at one of:\n"
-            "- `models/lite/model.gguf`\n"
-            "- `models/standard/model.gguf`\n"
-            "- `models/advanced/model.gguf`\n\n"
-            "Then restart the app."
-        )
-        st.stop()
+log_memory_usage("app_start")
 
 # ---------- SIDEBAR ----------
 with st.sidebar:
-    st.markdown("## Arapai- Offline AI Tutor")
+    st.markdown(
+        '<div class="arapai-sidebar-title">Arapai- Offline AI Tutor</div>',
+        unsafe_allow_html=True,
+    )
+    if st.session_state.run_mode == "Offline":
+        runtime_error = _check_offline_runtime()
+        if runtime_error:
+            st.error(runtime_error)
+        else:
+            st.caption("Local model ready (first reply may take 1–2 min to load).")
     if st.button("New Chat", use_container_width=True):
        st.session_state.mode = "chat"
        st.session_state.messages = []
@@ -624,7 +849,10 @@ with st.sidebar:
        st.session_state.mode = "cbc"
     
     st.markdown("---")
-    st.caption("Offline AI Tutor")
+    st.markdown(
+        '<div class="arapai-sidebar-caption">Offline AI Tutor</div>',
+        unsafe_allow_html=True,
+    )
     st.selectbox("Theme", options=["Dark", "Light"], key="theme_mode")
     st.selectbox("Mode", options=["Offline", "Online (Gemma 1.1)"], key="run_mode")
     st.markdown("---")
@@ -637,9 +865,16 @@ with st.sidebar:
         )
     else:
         st.info("Online mode uses `google/gemma-1.1-7b-it`.")
-    st.checkbox("Use reference documents (PDFs)", key="use_rag")
+    prev_rag = st.session_state.get("_prev_use_rag", st.session_state.use_rag)
+    st.checkbox("Use reference documents (RAG)", key="use_rag", help="Loads PDF index only when enabled.")
+    if prev_rag and not st.session_state.use_rag:
+        unload_rag()
+    st.session_state._prev_use_rag = st.session_state.use_rag
     st.markdown("---")
     st.checkbox("Debug level compliance", key="debug_level_checks")
+    if st.session_state.debug_level_checks:
+        mem = memory_summary()
+        st.caption(f"RSS: {mem['rss_mb']} MB · Peak: {mem['peak_rss_mb']} MB · Headroom: {mem['headroom_mb']} MB")
 
 # ---------- TOP/HERO ----------
 st.markdown(
@@ -659,61 +894,35 @@ with ctrl1:
         options=list(LEVEL_ORDER),
         key="level",
         format_func=lambda k: LEVEL_LABELS[k],
-        on_change=_request_regen,
     )
     st.caption(f"Selected behavior: {LEVEL_HINTS.get(st.session_state.level, '')}")
 
-# ---------- REGENERATE ON LEVEL CHANGE ----------
-if st.session_state.pending_regen and not st.session_state.edit_mode:
+_sync_explanation_level_change()
+
+if st.session_state.pending_regen_all and not st.session_state.edit_mode:
+    st.session_state.pending_regen_all = False
+    _regenerate_all_assistant_replies()
+    st.rerun()
+elif st.session_state.pending_regen and not st.session_state.edit_mode:
     st.session_state.pending_regen = False
     if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant":
         st.session_state.messages.pop()
     last_user = next((m["content"] for m in reversed(st.session_state.messages) if m["role"] == "user"), None)
     if last_user:
-        math_result = solve(last_user)
-        retrieved_text = None
-        if st.session_state.use_rag:
-            try:
-                retrieved_text = retrieve(last_user)
-            except FileNotFoundError:
-                st.warning(
-                    "Reference documents not indexed. Put PDFs in **data/raw_pdfs** or **data/rawpdfs**, "
-                    "then run: `python -m ingestion.ingest_pdf`"
-                )
-        prompt = build_prompt(st.session_state.level, st.session_state.messages[-6:], retrieved_text)
-        tier = st.session_state.model_tier.lower()
-        with st.spinner("Regenerating..."):
-            if math_result is not None:
-                reply = f"The result is {math_result}."
-                st.session_state.last_debug_info = {
-                    "selected_level": st.session_state.level,
-                    "initial_compliant": True,
-                    "retry_used": False,
-                    "retry_compliant": False,
-                    "final_compliant": True,
-                    "result_source": "math",
-                }
-            else:
-                try:
-                    reply, debug = _ensure_valid_reply(
-                        prompt,
-                        st.session_state.level,
-                        tier,
-                        online_generate(prompt) if st.session_state.run_mode == "Online (Gemma 1.1)" else generate(prompt, model_tier=tier),
-                    )
-                    st.session_state.last_debug_info = debug
-                except Exception as e:
-                    reply = _model_error_message(e)
-                    st.session_state.last_debug_info = {"error": str(e)}
-        st.session_state.messages.append({"role": "assistant", "content": reply})
+        _complete_assistant_reply(last_user)
         st.rerun()
-
+elif pending_user := _pending_assistant_user_text():
+    _complete_assistant_reply(pending_user)
+    st.rerun()
 
 if st.session_state.mode == "cbc":
     render_cbc_learn()
     st.stop()
 
 # ---------- DISPLAY CHAT ----------
+if st.session_state.get("_pending_rag_warning"):
+    st.warning(st.session_state.pop("_pending_rag_warning"))
+
 for i, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
@@ -737,61 +946,20 @@ if st.session_state.edit_mode and len(st.session_state.messages) >= 2:
             st.session_state.edit_mode = False
             st.rerun()
 
+# ---------- SAMPLE PROMPTS ----------
+if not st.session_state.edit_mode and st.session_state.mode == "chat":
+    st.caption("Sample prompts")
+    prompt_cols = st.columns(len(SAMPLE_PROMPTS))
+    for i, sample in enumerate(SAMPLE_PROMPTS):
+        if prompt_cols[i].button(f"Prompt {i + 1}", key=f"sample-{i}", use_container_width=True):
+            st.session_state.messages.append({"role": "user", "content": sample})
+            st.rerun()
+
 # ---------- INPUT ----------
 if not st.session_state.edit_mode:
-    user_input = st.chat_input("Ask Arapai")
-    if user_input:
-        st.session_state.messages.append({"role": "user", "content": user_input})
-        math_result = solve(user_input)
-        retrieved_text = None
-        if st.session_state.use_rag:
-            try:
-                retrieved_text = retrieve(user_input)
-            except FileNotFoundError:
-                st.warning(
-                    "Reference documents not indexed. Put PDFs in **data/raw_pdfs** or **data/rawpdfs**, "
-                    "then run: `python -m ingestion.ingest_pdf`"
-                )
-
-        prompt = build_prompt(st.session_state.level, st.session_state.messages[-6:], retrieved_text)
-        with st.chat_message("assistant"):
-            tier = st.session_state.model_tier.lower()
-            if math_result is not None:
-                reply = f"The result is {math_result}."
-                st.session_state.last_debug_info = {
-                    "selected_level": st.session_state.level,
-                    "initial_compliant": True,
-                    "retry_used": False,
-                    "retry_compliant": False,
-                    "final_compliant": True,
-                    "result_source": "math",
-                }
-                st.markdown(reply)
-            else:
-                try:
-                    if st.session_state.run_mode == "Online (Gemma 1.1)":
-                        with st.spinner("Thinking..."):
-                            raw = online_generate(prompt)
-                        reply, debug = _ensure_valid_reply(prompt, st.session_state.level, tier, raw)
-                        st.session_state.last_debug_info = debug
-                        st.markdown(reply)
-                    else:
-                        ph = st.empty()
-                        reply = ""
-                        for chunk in generate_stream(prompt, model_tier=tier):
-                            reply += chunk
-                            ph.markdown(reply + "▌")
-                        if not reply.strip():
-                            # If streaming returns nothing, fallback to non-stream generation.
-                            reply = generate(prompt, model_tier=tier)
-                        reply, debug = _ensure_valid_reply(prompt, st.session_state.level, tier, reply)
-                        st.session_state.last_debug_info = debug
-                        ph.markdown(reply)
-                except Exception as e:
-                    reply = _model_error_message(e)
-                    st.session_state.last_debug_info = {"error": str(e)}
-                    st.markdown(reply)
-        st.session_state.messages.append({"role": "assistant", "content": reply})
+    if chat_value := st.chat_input("Ask Arapai"):
+        st.session_state.messages.append({"role": "user", "content": chat_value})
+        st.rerun()
 
 if st.session_state.debug_level_checks and st.session_state.last_debug_info:
     st.markdown("### Debug: Level Compliance")
