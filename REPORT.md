@@ -1,4 +1,4 @@
-# Arapai — Technical Report
+# Arapai: Technical Report
 
 **Project:** Arapai (Offline AI Education Tutor)  
 **Problem domain:** Math & Scientific Reasoning (education tutoring)  
