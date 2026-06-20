@@ -12,7 +12,7 @@
   "cross_disciplinary_pairing": {
     "discipline": "education",
     "load_bearing": true,
-    "description": "On-device LLM tutoring integrated with FAISS RAG over local curriculum PDFs, CBC scenario assessment, and a safe numeric math engine for offline school labs."
+    "description": "Named for Arapai, Soroti District, Uganda (first demo site with severe connectivity limits). On-device LLM tutoring with FAISS RAG over local PDFs, CBC scenario assessment, and a safe numeric math engine — AI schools can own, run, and trust offline."
   },
   "test_prompts": [
     {

@@ -21,7 +21,7 @@ The full Arapai application (`app.py`, `backend/`, etc.) extends the template wi
 
 ## 1. Executive Summary
 
-**Arapai** is an offline-first educational assistant for schools that cannot rely on cloud APIs, stable fibre, or sustained electricity. It runs on a standard 8 GB laptop using **GGUF models via llama.cpp**, optional **RAG over local curriculum PDFs**, **deterministic safe math**, and a **Competency-Based Curriculum (CBC) scenario quiz** with a closed learning loop: **practice → feedback → Explain my mistake**.
+**Arapai** is an offline-first educational assistant named after **Arapai, Soroti District, Uganda** — where the first demo took place. In that community, poor mobile signal makes even paid data bundles slow or unusable for cloud AI. The project targets schools that need tutoring **without relying on the internet**: it runs on a standard 8 GB laptop using **GGUF models via llama.cpp**, optional **RAG over local curriculum PDFs**, **deterministic safe math**, and a **Competency-Based Curriculum (CBC) scenario quiz** with a closed learning loop: **practice → feedback → Explain my mistake**.
 
 The system is engineered for ADTC scoring dimensions:
 
@@ -40,7 +40,7 @@ This submission includes a **working prototype**: offline chat tutor, CBC-Learn,
 | Structured assessment | CBC scenario questions with hybrid rubric scoring |
 | Symbolic/numeric reasoning | Safe math engine for arithmetic without `eval()` |
 
-**African context:** Offline school labs, CBC-style scenario pedagogy, and deployment on low-cost hardware ($150–$500). English UI today; local-language support planned for a future release.
+**African context:** First demo in **Arapai, Soroti District, Uganda** (severe connectivity constraints); offline school-lab design; CBC-style scenario pedagogy; deployment on low-cost hardware ($150–$500). English UI today; local-language support planned for a future release.
 
 ---
 
@@ -48,7 +48,9 @@ This submission includes a **working prototype**: offline chat tutor, CBC-Learn,
 
 ### 2.1 The problem
 
-Across Africa, students and teachers face a recurring gap:
+The project is rooted in **Arapai, Soroti District, Uganda**, where the first demo was held. There, internet access is unreliable in practice: even with data bundles purchased, poor signal often makes connectivity slow or unusable outside a few locations. That reality generalises across many school settings where cloud LLMs are impractical.
+
+Students and teachers still face a recurring gap:
 
 1. **Access economics** — Cloud LLMs require API fees, reliable internet, and continuous power. Many schools have none of these during normal teaching hours.
 2. **Generic AI is not curriculum-aligned** — Chatbots answer broadly but do not practice CBC-style *scenario reasoning* (e.g. “A pupil connects a bulb but it does not light — explain why”) or tie answers to local course materials.
@@ -410,7 +412,7 @@ Planned extensions beyond this Gate 1 prototype:
 
 | Claim | Status | Evidence |
 |-------|--------|----------|
-| **African Use Case** | Qualifies | Offline school lab design; CBC scenario pedagogy; low-cost hardware target |
+| **African Use Case** | Qualifies | Named for Arapai, Soroti District (first demo); offline school-lab design; CBC scenario pedagogy; low-cost hardware |
 | **Budget Profile (+10%)** | Qualifies | Light tier ~637 MB file; peak RSS 703.0 MB measured; CPU-only default |
 | **African Alpha (+15%)** | Not claimed | English UI today; local-language support in future release |
 
@@ -460,4 +462,4 @@ Planned extensions beyond this Gate 1 prototype:
 
 ---
 
-*Arapai — Offline AI that Africa can own, run, and trust.*
+*Arapai — Offline AI that schools can own, run, and trust. Named for Arapai, Soroti District, Uganda.*
