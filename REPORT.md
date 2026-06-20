@@ -441,4 +441,4 @@ Output is written to `benchmark_results.json`. Example from the latest reproduci
 
 ---
 
-*Arapai — Offline AI that schools can own, run, and trust. Named for Arapai, Soroti District, Uganda.*
+*Arapai — Offline AI that schools can own, run, and trust.*
