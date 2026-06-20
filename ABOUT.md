@@ -1,4 +1,4 @@
-# About the Project — Arapai (DevPost)
+# About the Project — Arapai
 
 ## Inspiration
 
@@ -6,7 +6,7 @@
 
 The goal is simple: develop **AI that schools can own, run, and trust offline** — without the internet as a bottleneck. Teachers still need **scenario-based practice**, **explanations at the right level**, and answers grounded in **local curriculum materials**, not generic chatbot replies.
 
-We built this prototype for the [Africa Deep Tech Challenge 2026 — Laptop LLM Challenge](https://africadeeptech.org/challenge-2026): an on-device tutor on an ordinary 8 GB laptop, with no cloud dependency during normal use.
+We built this as an on-device tutor on an ordinary **8 GB laptop**, with no cloud dependency during normal use.
 
 ## What it does
 
@@ -17,7 +17,7 @@ Arapai is an offline AI education tutor with four main capabilities:
 3. **CBC-Learn mode** — Scenario questions (e.g. electricity, open circuits) with feedback and **“Explain my mistake”** after wrong answers.
 4. **Optional RAG** — Teachers add PDF notes; Arapai retrieves relevant excerpts with FAISS and grounds answers in local material.
 
-Everything runs on-device. Peak memory on the Light tier is about **703 MB** — well under the 7 GB ADTC limit.
+Everything runs on-device. Peak memory on the Light tier is about **703 MB** — well under a typical **7 GB** school-laptop budget.
 
 ## How we built it
 
@@ -28,7 +28,7 @@ We used a modular Python backend and a Streamlit front end:
 | `llm_engine.py` | GGUF load, inference, benchmark telemetry |
 | `tutor_engine.py` | Level compliance and reply validation |
 | `math_engine.py` | Safe parser/evaluator + mixed math+explain replies |
-| `demo_replies.py` | Vetted ADTC demo responses for sample prompts |
+| `demo_replies.py` | Vetted demo responses for sample prompts |
 | `rag_engine.py` | Lazy FAISS retrieval over ingested PDFs |
 | `cbc_engine.py` | Hybrid keyword scoring + curated mistake explanations |
 | `prompt_builder.py` | Truthfulness and level-aware prompts |
@@ -45,14 +45,14 @@ R \propto \frac{L}{A}
 
 longer/thinner wire → higher \(R\) → lower current \(I = V/R\) → dimmer bulb.
 
-We also built `benchmark.py` to measure tokens/sec, time-to-first-token, and peak RSS for ADTC scoring (\(S_{\text{eff}}\), \(S_{\text{perf}}\), \(S_{\text{acc}}\)).
+We also built `benchmark.py` to measure tokens/sec, time-to-first-token, and peak RSS so we can track efficiency, speed, and answer quality on real hardware.
 
 ## Challenges we ran into
 
-- **Small models, big expectations** — TinyLlama often hallucinates on science and math. We added deterministic math paths and curated demo replies for reliable ADTC demos.
+- **Small models, big expectations** — TinyLlama often hallucinates on science and math. We added deterministic math paths and curated demo replies for reliable classroom demos.
 - **Memory pressure** — Loading RAG embeddings plus the LLM caused native crashes on Windows. We unload RAG before inference, cap threads, and retry in safe mode after access violations.
 - **Streamlit reruns** — Theme changes interrupted generation. We split “save message” and “generate reply” so pending answers resume after UI reruns.
-- **Fragile RAG setup** — Empty/corrupt indexes and a broken ingestion import blocked retrieval. We fixed the package import and added clear UI warnings.
+- **Fragile RAG setup** — Empty or corrupt indexes and a broken ingestion import blocked retrieval. We fixed the package import and added clear UI warnings.
 - **First reply latency** — Cold model load can take 1–2 minutes on the first question; we added spinners and sidebar status so users know the app is working.
 
 ## Accomplishments that we're proud of
@@ -62,7 +62,7 @@ We also built `benchmark.py` to measure tokens/sec, time-to-first-token, and pea
 - **Closed learning loop**: quiz → feedback → “Explain my mistake”
 - **Four explanation levels** with automated compliance checking
 - **Reproducible benchmarks** via `benchmark.py` and `benchmark_results.json`
-- **ADTC template alignment**: `metadata.json`, `REPORT.md`, `download_model.sh`, audit model path
+- **Complete deployment package**: `metadata.json`, `REPORT.md`, `download_model.sh`, and documented model paths
 - **Demo-ready sample prompts** that are instant, correct, and level-compliant
 
 ## What we learned
@@ -71,7 +71,7 @@ We also built `benchmark.py` to measure tokens/sec, time-to-first-token, and pea
 - **Memory budgeting** matters as much as model choice: lazy loading, unloading RAG before inference, and tier selection keep you under hardware limits.
 - **UX for offline AI** must account for cold starts, reruns, and clear error states — especially on school hardware.
 - **Prompt compliance** (length, structure, banned meta-phrases) helps small models stay usable as tutors.
-- Building for ADTC taught us to measure what judges care about: peak RSS, latency, and domain accuracy — not just “it runs.”
+- **Measurement matters** — tracking peak RSS, latency, and domain accuracy helped us design for real laptops, not just “it runs on my machine.”
 
 ## What's next for Arapai
 
@@ -80,5 +80,5 @@ We also built `benchmark.py` to measure tokens/sec, time-to-first-token, and pea
 - Additional local languages beyond English
 - Pre-built RAG indexes for common school subjects
 - One-click lab installer for classroom deployment
-- Full ADTC profiler run on Ubuntu 22.04 standard hardware
+- Broader validation on Ubuntu and low-cost school hardware
 - Stronger models on Standard/Advanced tiers where RAM allows

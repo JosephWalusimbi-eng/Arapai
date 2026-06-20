@@ -1,14 +1,14 @@
 # LLM models (GGUF)
 
-Arapai requires **GGUF weights via llama.cpp**. Weights are **not committed to Git** (hundreds of MB to several GB). Judges and reviewers must download them once using the instructions below.
+Arapai requires **GGUF weights via llama.cpp**. Weights are **not committed to Git** (hundreds of MB to several GB). Download them once using the instructions below.
 
 ---
 
-## For ADTC judges (required)
+## Quick start (Light tier)
 
-**Minimum to run the audit path:** the **Light** tier model only (~637 MB).
+**Minimum to run the default offline path:** the **Light** tier model only (~637 MB).
 
-Per the [ADTC submission template](https://github.com/Africa-Deep-Tech-Foundation/adtc-2026-submission-template), run from project root:
+From project root:
 
 ```bash
 bash download_model.sh
@@ -29,7 +29,7 @@ python benchmark.py --tier light
 streamlit run app.py
 ```
 
-**Audit settings:** Mode = **Offline**, Model = **Light**.
+**Recommended settings:** Mode = **Offline**, Model = **Light**.
 
 ### Manual download (if the script fails)
 
@@ -53,14 +53,14 @@ Put **one** file named **`model.gguf`** in the matching folder:
 
 | Folder | File | When used | Approx. size |
 |--------|------|-----------|--------------|
-| `models/lite/` | `model.gguf` | Any RAM; **ADTC audit default** | ~637 MB |
+| `models/lite/` | `model.gguf` | Any RAM; **default for low-RAM labs** | ~637 MB |
 | `models/standard/` | `model.gguf` | 4+ GB free RAM | ~3.9 GB |
 | `models/advanced/` | `model.gguf` | 8+ GB free RAM | ~4.1 GB |
 
 ### Download script
 
 ```bash
-python scripts/download_models.py              # light only (audit)
+python scripts/download_models.py              # light only
 python scripts/download_models.py --tier standard
 python scripts/download_models.py --tier advanced
 python scripts/download_models.py --tier all
@@ -68,7 +68,7 @@ python scripts/download_models.py --tier all
 
 ### Direct download links
 
-**Lite (audit default)** — TinyLlama 1.1B Chat Q4_K_M  
+**Lite (default)** — TinyLlama 1.1B Chat Q4_K_M  
 https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf  
 → `models/lite/model.gguf`
 
@@ -80,7 +80,7 @@ https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-cha
 https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_K_M.gguf  
 → `models/advanced/model.gguf`
 
-> Prefer **Q4_K_M** quantizations for speed and RAM efficiency on the ADTC Standard Laptop.
+> Prefer **Q4_K_M** quantizations for speed and RAM efficiency on typical 8 GB school laptops.
 
 ---
 
@@ -90,7 +90,7 @@ https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistr
 |--------|--------|
 | Size | Lite ~637 MB; Standard/Advanced ~4 GB each |
 | GitHub limits | Large binaries bloat the repo and hit LFS quotas |
-| ADTC workflow | Judges fetch weights at evaluation time from documented URLs |
+| Deployment | Operators fetch weights at install time from documented URLs |
 | Reproducibility | Pinned URLs in `MODEL_MANIFEST.json` match the submitted commit |
 
 ---

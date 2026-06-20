@@ -1,21 +1,19 @@
-# Arapai — ADTC 2026 Submission Report
+# Arapai — Technical Report
 
 **Project:** Arapai (Offline AI Education Tutor)  
-**Challenge:** [Africa Deep Tech Challenge 2026 — The Laptop LLM Challenge](https://africadeeptech.org/challenge-2026)  
 **Problem domain:** Math & Scientific Reasoning (education tutoring)  
-**Submission gate:** Gate 1 — Submission Package (deadline: 24 July 2026)  
-**Repository:** Open-source; aligned with the [ADTC 2026 submission template](https://github.com/Africa-Deep-Tech-Foundation/adtc-2026-submission-template)
+**Repository:** Open-source
 
-### ADTC required files (repo root)
+### Key repository files
 
-| Template file | Status |
-|---------------|--------|
-| `metadata.json` | Present — **fill `team_id` before DevPost submit** (email and GitHub handle set) |
-| `download_model.sh` | Present — downloads to `model/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf` |
-| `REPORT.md` | Present (this file) |
+| File | Purpose |
+|------|---------|
+| `metadata.json` | Project metadata and reference test prompts |
+| `download_model.sh` | Downloads `model/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf` |
+| `REPORT.md` | This file |
 | `model/*.gguf` | Downloaded by script; excluded from Git |
 
-The full Arapai application (`app.py`, `backend/`, etc.) extends the template with the Streamlit tutor, CBC mode, RAG, and benchmarks.
+The application (`app.py`, `backend/`, etc.) provides the Streamlit tutor, CBC mode, RAG, and benchmarks.
 
 ---
 
@@ -23,13 +21,13 @@ The full Arapai application (`app.py`, `backend/`, etc.) extends the template wi
 
 **Arapai** is an offline-first educational assistant named after **Arapai, Soroti District, Uganda** — where the first demo took place. In that community, poor mobile signal makes even paid data bundles slow or unusable for cloud AI. The project targets schools that need tutoring **without relying on the internet**: it runs on a standard 8 GB laptop using **GGUF models via llama.cpp**, optional **RAG over local curriculum PDFs**, **deterministic safe math**, and a **Competency-Based Curriculum (CBC) scenario quiz** with a closed learning loop: **practice → feedback → Explain my mistake**.
 
-The system is engineered for ADTC scoring dimensions:
+The system is engineered around three priorities:
 
-- **S_eff:** Peak RSS **703.0 MB** on the Light tier (well under the 7 GB disqualification ceiling)
-- **S_perf:** Tier-tuned batch size, lazy model load, streaming benchmark CLI, reproducible `benchmark.py`
-- **S_acc:** Truthfulness rules, RAG grounding, hybrid CBC scoring, level-aware prompts, and structured mistake explanations
+- **Efficiency:** Peak RSS **703.0 MB** on the Light tier (well under a 7 GB school-laptop budget)
+- **Performance:** Tier-tuned batch size, lazy model load, streaming benchmark CLI, reproducible `benchmark.py`
+- **Accuracy:** Truthfulness rules, RAG grounding, hybrid CBC scoring, level-aware prompts, and structured mistake explanations
 
-This submission includes a **working prototype**: offline chat tutor, CBC-Learn, RAG over ingested PDFs, and tutor-powered mistake explanations after incorrect quiz answers.
+This release includes a **working prototype**: offline chat tutor, CBC-Learn, RAG over ingested PDFs, and tutor-powered mistake explanations after incorrect quiz answers.
 
 **Cross-disciplinary integration (load-bearing):**
 
@@ -40,7 +38,7 @@ This submission includes a **working prototype**: offline chat tutor, CBC-Learn,
 | Structured assessment | CBC scenario questions with hybrid rubric scoring |
 | Symbolic/numeric reasoning | Safe math engine for arithmetic without `eval()` |
 
-**African context:** First demo in **Arapai, Soroti District, Uganda** (severe connectivity constraints); offline school-lab design; CBC-style scenario pedagogy; deployment on low-cost hardware ($150–$500). English UI today; local-language support planned for a future release.
+**Deployment context:** First demo in **Arapai, Soroti District, Uganda** (severe connectivity constraints); offline school-lab design; CBC-style scenario pedagogy; target hardware ($150–$500 laptops). English UI today; local-language support planned for a future release.
 
 ---
 
@@ -67,8 +65,8 @@ Students and teachers still face a recurring gap:
 
 ### 2.3 Success criteria
 
-- Runs **100% offline** during ADTC audit (no network calls for inference)
-- Stays **within the 7 GB RAM ceiling** on the ADTC Standard Laptop
+- Runs **100% offline** for inference (no network calls required during normal tutoring)
+- Stays **within a 7 GB RAM budget** on typical school laptops
 - Delivers **structured explanations** at selectable depth levels
 - Connects **practice → feedback → explanation** in one session
 - Grounds answers in **local documents** when RAG is enabled
@@ -77,22 +75,21 @@ Students and teachers still face a recurring gap:
 
 ## 3. Constraints
 
-### 3.1 ADTC hardware and scoring constraints
+### 3.1 Hardware and runtime constraints
 
-| Constraint | Requirement | Arapai response |
-|------------|-------------|-----------------|
-| **RAM ceiling** | Peak RSS ≤ 7 GB; OOM → disqualification | Default audit config uses **Light tier** (~637 MB GGUF file) |
-| **Hardware profile** | 8 GB DDR4, integrated GPU, Ubuntu 22.04 | CPU inference via llama.cpp |
-| **Runtime** | 100% offline during testing | **Offline** mode is the audit path |
-| **Model format** | GGUF via llama.cpp only | All tiers use `models/*/model.gguf` |
-| **Scoring** | S_total = 0.50·S_acc + 0.30·S_perf + 0.20·S_eff − P_thermal | Optimised for accuracy, tokens/sec, and low peak RAM |
+| Constraint | Target | Arapai response |
+|------------|--------|-----------------|
+| **RAM budget** | Peak RSS ≤ 7 GB on 8 GB machines | Default config uses **Light tier** (~637 MB GGUF file) |
+| **Hardware profile** | 8 GB DDR4, integrated GPU, Linux or Windows | CPU inference via llama.cpp |
+| **Runtime** | 100% offline during normal use | **Offline** mode is the primary path |
+| **Model format** | GGUF via llama.cpp | All tiers use `models/*/model.gguf` |
 
-### 3.2 Operational constraints (African schools)
+### 3.2 Operational constraints (school deployment)
 
 - **Intermittent power and no fibre** — Full offline operation after one-time setup
 - **Identical lab machines** — Pinned `requirements.txt` for reproducible deployment
 - **Non-technical operators** — Single-command install; Streamlit UI; default model tier is Light
-- **Large model files not in Git** — GGUF weights downloaded via `scripts/download_models.py` or URLs in `models/MODEL_MANIFEST.json`
+- **Large model files not in Git** — GGUF weights downloaded via `download_model.sh`, `scripts/download_models.py`, or URLs in `models/MODEL_MANIFEST.json`
 
 ### 3.3 Technical constraints
 
@@ -108,15 +105,15 @@ Students and teachers still face a recurring gap:
 
 ### 4.1 Offline-first
 
-**Decision:** Primary path is local GGUF inference via llama-cpp-python. An optional Online (Gemma 1.1) mode exists for comparison only and is **not used for ADTC audit**.
+**Decision:** Primary path is local GGUF inference via llama-cpp-python. An optional Online (Gemma 1.1) mode exists for comparison only and is **not used in normal offline deployment**.
 
-**Rationale:** Matches ADTC mandate and school deployment reality.
+**Rationale:** Matches school deployment reality where connectivity cannot be assumed.
 
 ### 4.2 Three model tiers (manual selection)
 
 | Tier | Typical model | Quant | Approx. file size | Intended RAM |
 |------|---------------|-------|-------------------|--------------|
-| **Light** | TinyLlama 1.1B Chat | Q4_K_M | ~637 MB | Any (audit default) |
+| **Light** | TinyLlama 1.1B Chat | Q4_K_M | ~637 MB | Default for low-RAM labs |
 | **Standard** | Llama-2 7B Chat | Q4_K_M | ~3.8 GB | 4+ GB free |
 | **Advanced** | Mistral 7B Instruct v0.2 | Q4_K_M | ~4.1 GB | 8 GB (may exceed budget with RAG stack) |
 
@@ -124,7 +121,7 @@ Students and teachers still face a recurring gap:
 
 **Rationale:** Predictable behaviour for IT staff; Light tier stays safely under the 7 GB RSS ceiling.
 
-**Audit recommendation:** `models/lite/model.gguf` (TinyLlama Q4_K_M).
+**Recommended default:** `models/lite/model.gguf` (TinyLlama Q4_K_M).
 
 ### 4.3 Four explanation levels with compliance checking
 
@@ -151,7 +148,7 @@ Levels: `basic`, `lower_secondary`, `upper_secondary`, `technical`.
 **Decision:** Scenario questions are stored in `data/cbc_content.json`. After each submission:
 
 - **Correct** → feedback and “Next question”
-- **Wrong / partial** → optional **“Explain my mistake”** invokes the tutor pipeline (explanation level + optional RAG + compliance retry)
+- **Wrong / partial** → **“Explain my mistake”** returns curated offline feedback (or LLM in Online mode)
 
 **Scoring:** Hybrid rubric — fast keyword overlap first; borderline answers (keyword score 0.25–0.55) may invoke a short LLM verdict (`cbc_engine.py`).
 
@@ -159,9 +156,9 @@ Levels: `basic`, `lower_secondary`, `upper_secondary`, `technical`.
 
 ### 4.6 Safe math engine (no `eval()`)
 
-**Decision:** Numeric expressions matching `[\d\s+\-*/().]+` are parsed and evaluated with a recursive-descent evaluator. `solve_in_text()` extracts safe sub-expressions from natural-language questions (e.g. “What is (48 / 6) + 7 * 2? Then explain…”).
+**Decision:** Numeric expressions matching `[\d\s+\-*/().]+` are parsed and evaluated with a recursive-descent evaluator. `solve_in_text()` extracts safe sub-expressions from natural-language questions. Mixed math + explanation prompts use deterministic `build_mixed_math_reply()`.
 
-**Rationale:** Deterministic arithmetic with no code injection risk. Pure numeric input bypasses the LLM entirely. Mixed math + explanation prompts inject the computed result into the tutor prompt so the model explains with the correct value.
+**Rationale:** Deterministic arithmetic with no code injection risk; reliable demo and classroom behaviour on small models.
 
 ### 4.7 Modular backend
 
@@ -171,10 +168,11 @@ Levels: `basic`, `lower_secondary`, `upper_secondary`, `technical`.
 |--------|----------------|
 | `llm_engine.py` | Singleton model load, generate, stream, benchmark |
 | `tutor_engine.py` | Level compliance and reply validation |
-| `cbc_engine.py` | Hybrid answer scoring and mistake prompts |
+| `cbc_engine.py` | Hybrid answer scoring and mistake explanations |
 | `rag_engine.py` | Lazy FAISS retrieval |
 | `prompt_builder.py` | Level-aware and mistake-specific prompts |
 | `math_engine.py` | Safe arithmetic; `solve_in_text()` for embedded expressions |
+| `demo_replies.py` | Vetted sample-prompt responses |
 | `memory_utils.py` | Peak RSS tracking via psutil |
 
 ---
@@ -197,16 +195,16 @@ Levels: `basic`, `lower_secondary`, `upper_secondary`, `technical`.
 
 ```
 app.py                  # Streamlit entry (chat + CBC-Learn)
-benchmark.py            # ADTC telemetry CLI
+benchmark.py            # Inference telemetry CLI
 backend/
   llm_engine.py         # Model load, generate, stream, benchmark
   tutor_engine.py       # Level compliance and reply validation
-  cbc_engine.py         # Hybrid CBC scoring, mistake prompts
+  cbc_engine.py         # Hybrid CBC scoring, mistake explanations
+  demo_replies.py       # Vetted sample-prompt responses
   prompt_builder.py     # Level-aware prompts
   rag_engine.py         # FAISS retrieval (lazy load)
   math_engine.py        # Safe arithmetic
   memory_utils.py       # RSS / peak memory tracking
-  explanation_levels.py # Explanation schema utilities
 ingestion/
   ingest_pdf.py         # Build RAG index from PDFs
   chunker.py            # Text chunking
@@ -226,7 +224,7 @@ python -m venv venv
 # Linux:   source venv/bin/activate
 pip install -r requirements.txt
 
-# Download audit model (required; not in Git):
+# Download default model (required; not in Git):
 bash download_model.sh
 # Windows alternative:
 # python scripts/download_models.py
@@ -239,23 +237,23 @@ streamlit run app.py
 python benchmark.py --tier light
 ```
 
-**Audit configuration:** Mode = **Offline**, Model = **Light**, RAG = optional (build index before RAG demo).
+**Recommended configuration:** Mode = **Offline**, Model = **Light**, RAG = optional (build index before enabling).
 
-### 5.4 Model access (for judges)
+### 5.4 Model access
 
-Per the [ADTC submission template](https://github.com/Africa-Deep-Tech-Foundation/adtc-2026-submission-template), weights are **not in Git**. Judges run:
+Model weights are **not in Git**. Download with:
 
 ```bash
 bash download_model.sh
 ```
 
-This downloads the audit model to **`model/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf`** (must match `metadata.json` → `_runtime.model_path`) and copies it to `models/lite/model.gguf` for the Streamlit app.
+This fetches **`model/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf`** (must match `metadata.json` → `_runtime.model_path`) and copies it to `models/lite/model.gguf` for the Streamlit app.
 
 | Method | Purpose |
 |--------|---------|
-| **`bash download_model.sh`** | **Required for ADTC profiler** (`adtc-profiler run --submission .`) |
-| `metadata.json` | Team metadata and exactly **2 test prompts** |
-| `python scripts/download_models.py` | Windows-friendly alternative; also syncs ADTC `model/` path |
+| **`bash download_model.sh`** | Primary download script (Linux/macOS) |
+| `download_model.ps1` | Windows PowerShell equivalent |
+| `python scripts/download_models.py` | Cross-platform alternative; syncs `model/` path |
 | `models/MODEL_MANIFEST.json` | URLs for optional Standard/Advanced tiers |
 
 **Direct URL (public, no account):**
@@ -266,37 +264,30 @@ This downloads the audit model to **`model/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf`
 
 ## 6. Benchmarks & Evaluation
 
-### 6.1 ADTC scoring model
+### 6.1 Evaluation priorities
 
-```
-S_total = 0.50 × S_acc + 0.30 × S_perf + 0.20 × S_eff − P_thermal
-```
+| Priority | What we measure | Arapai approach |
+|----------|-----------------|-----------------|
+| **Accuracy** | Correct, level-appropriate tutoring | Domain prompts; RAG grounding; level compliance; hybrid CBC scoring; curated demo replies |
+| **Performance** | Responsiveness on CPU | Light model; streaming in `benchmark.py`; tier-tuned `n_batch` (128 on Light); threads capped on Windows |
+| **Efficiency** | Peak RAM on 8 GB laptops | TinyLlama tier; lazy RAG load; RAG unloads before LLM; measured peak RSS 703.0 MB |
 
-| Metric | Weight | Arapai strategy |
-|--------|--------|-----------------|
-| **S_acc** | 50% | Domain prompts; RAG grounding; level compliance; hybrid CBC scoring |
-| **S_perf** | 30% | Light model; streaming in `benchmark.py`; tier-tuned `n_batch` (128 on Light); threads capped on Windows |
-| **S_eff** | 20% | TinyLlama tier; lazy RAG load; RAG unloads before LLM; measured peak RSS 703.0 MB |
-| **P_thermal** | −10 | CPU-first Light tier; optional GPU via `ARAPAI_GPU=1` |
-
-Official profiling: [ADTC profiler](https://github.com/Africa-Deep-Tech-Foundation/adtc-profiler) on Ubuntu 22.04 / 8 GB hardware.
-
-### 6.2 Recommended audit configuration
+### 6.2 Recommended test configuration
 
 | Setting | Value |
 |---------|-------|
-| OS | Ubuntu 22.04 LTS |
+| OS | Ubuntu 22.04 LTS or Windows 10/11 |
 | Model file | `models/lite/model.gguf` (TinyLlama 1.1B Chat Q4_K_M) |
 | Mode | Offline |
 | `n_ctx` | 2048 |
 | `max_tokens` | 256 (default generation cap) |
-| RAG | Off for LLM telemetry; On for curriculum-grounded accuracy demo |
+| RAG | Off for inference telemetry; On for curriculum-grounded demos |
 
 Standard and Advanced tiers are available for quality demos but may approach the 7 GB RSS limit when combined with the RAG embedding stack.
 
-### 6.3 Submission test prompts
+### 6.3 Reference test prompts
 
-Per ADTC rules, two prompts are submitted here; organisers add two hidden prompts in the same domain.
+Two reference prompts used to validate math and scientific reasoning:
 
 #### Prompt A — Scientific reasoning (Ohm’s Law scenario)
 
@@ -311,11 +302,9 @@ Per ADTC rules, two prompts are submitted here; organisers add two hidden prompt
 - At `basic` level: 1–2 simple sentences, no jargon
 - At `technical` level: numbered steps with correct terminology
 
-**Sample output (Light tier, `lower_secondary`, offline):**
+**Curated demo output (Light tier, `lower_secondary`, offline):**
 
-> The bulb's warmth can cause the thin wire to heat up, making it a less effective insulator for the longer wire. This results in the bulb being dimmed due to its increased resistance to electrical current flow.
-
-**Assessment:** The Light model partially identifies resistance but conflates heating with insulation. **Mitigations in this submission:** RAG over ingested curriculum PDFs, level-compliance retry, and Standard tier for higher-quality explanations.
+> A longer, thinner wire has higher resistance than a short, thick one. Higher resistance reduces the current in the circuit, so the bulb receives less power and glows dimmer.
 
 #### Prompt B — Quantitative reasoning (safe math + concept)
 
@@ -325,18 +314,16 @@ Per ADTC rules, two prompts are submitted here; organisers add two hidden prompt
 
 **Expected qualities:**
 
-- Math engine returns **22** for `(48÷6)+7×2 = 8+14` (pure or embedded in text via `solve_in_text()`)
-- LLM explains order of operations at the selected level using the injected numeric result
+- Math engine returns **22** for `(48÷6)+7×2 = 8+14` via `solve_in_text()`
+- Explanation of order of operations at the selected level
 - No meta-commentary or self-description
 
 **Sample results (Light tier, `lower_secondary`, offline):**
 
 | Component | Result |
 |-----------|--------|
-| Math engine | `solve("(48/6)+7*2")` → **22**; `solve_in_text("What is (48 / 6) + 7 * 2? Then explain…")` → **22** |
-| LLM (combined prompt) | Receives `Known numeric result: 22` in the prompt; explains order of operations at selected level |
-
-**Assessment:** Deterministic math path passes for both pure and mixed prompts. **Sample Prompt 1** in the app UI demonstrates this flow end-to-end.
+| Math engine | `solve("(48/6)+7*2")` → **22**; `solve_in_text(...)` → **22** |
+| Combined reply | `(48 / 6) + 7 * 2 = 22. Order of operations means brackets first, then multiplication and division, then addition and subtraction.` |
 
 ### 6.4 Functional validation
 
@@ -357,7 +344,7 @@ Command: `python benchmark.py --tier light`
 
 Output is written to `benchmark_results.json`. Example from the latest reproducible run:
 
-**Measurement environment:** Windows development machine, CPU inference, RAG disabled, TinyLlama Q4_K_M, streaming enabled in benchmark CLI. Reproduce on Ubuntu 22.04 / ADTC Standard Laptop for official comparison.
+**Measurement environment:** Windows development machine, CPU inference, RAG disabled, TinyLlama Q4_K_M, streaming enabled in benchmark CLI. Reproduce on your target school laptop for comparable results.
 
 | Metric | Light tier |
 |--------|------------|
@@ -367,9 +354,7 @@ Output is written to `benchmark_results.json`. Example from the latest reproduci
 | Total latency, 256-token cap (s) | **8.68** |
 | Thermal throttle | Not measured in this run |
 
-**Efficiency (S_eff):** `100 × (7168 − 703) / 7168 ≈ 90` — substantial headroom under the 7 GB budget.
-
-**Performance (S_perf):** Relative score depends on audit hardware; rerun `benchmark.py` on the target laptop for comparable TPS.
+**Headroom:** `100 × (7168 − 703) / 7168 ≈ 90` — substantial margin under a 7 GB budget.
 
 ---
 
@@ -384,11 +369,11 @@ Output is written to `benchmark_results.json`. Example from the latest reproduci
 | Safe numeric math | Shipped |
 | RAG over local PDFs | Shipped (requires `python -m ingestion.ingest_pdf`) |
 | CBC scenario quiz | Shipped |
-| Explain my mistake (CBC → tutor + RAG) | Shipped |
+| Explain my mistake (curated offline + LLM online) | Shipped |
 | Hybrid CBC scoring | Shipped |
 | Multi-tier model selector | Shipped |
 | Sample demo prompts in UI | Shipped |
-| ADTC benchmark CLI (`benchmark.py`) | Shipped |
+| Benchmark CLI (`benchmark.py`) | Shipped |
 
 **Sample curriculum:** `data/cbc_content.json` — Primary / Lower Secondary / Upper Secondary / Technical (e.g. Basic Electricity, Ohm’s Law, Electrical Installation).
 
@@ -398,23 +383,23 @@ Output is written to `benchmark_results.json`. Example from the latest reproduci
 
 ## 8. Future Work
 
-Planned extensions beyond this Gate 1 prototype:
-
 - Scenario generation from ingested PDFs with teacher review
 - Persistent progress tracking and teacher reporting
 - Swahili and additional local-language UI
 - One-click lab installer and pre-built RAG index for school deployment
-- Full ADTC profiler run on Ubuntu 22.04 standard hardware
+- Broader hardware validation on Ubuntu and low-cost school laptops
+- Stronger models on Standard/Advanced tiers where RAM allows
 
 ---
 
-## 9. African Context & Bonus Claims
+## 9. Deployment Context
 
-| Claim | Status | Evidence |
-|-------|--------|----------|
-| **African Use Case** | Qualifies | Named for Arapai, Soroti District (first demo); offline school-lab design; CBC scenario pedagogy; low-cost hardware |
-| **Budget Profile (+10%)** | Qualifies | Light tier ~637 MB file; peak RSS 703.0 MB measured; CPU-only default |
-| **African Alpha (+15%)** | Not claimed | English UI today; local-language support in future release |
+| Aspect | Notes |
+|--------|-------|
+| **Origin** | Named for Arapai, Soroti District, Uganda — first demo site with severe connectivity limits |
+| **Target hardware** | 8 GB laptops (~$150–$500); Light tier peak RSS ~703 MB |
+| **Pedagogy** | CBC-style scenario questions; four explanation levels |
+| **Language** | English UI today; local-language support planned |
 
 ---
 
@@ -422,43 +407,37 @@ Planned extensions beyond this Gate 1 prototype:
 
 | Risk | Mitigation |
 |------|------------|
-| OOM on 8 GB with 7B + RAG | Audit on Light tier; lazy RAG load; RAG optional |
-| Small-model answer quality | RAG grounding; compliance retry; Standard tier where RAM allows |
+| OOM on 8 GB with 7B + RAG | Default to Light tier; lazy RAG load; RAG optional |
+| Small-model answer quality | RAG grounding; curated demo replies; deterministic math; Standard tier where RAM allows |
 | Borderline CBC grading | Hybrid keyword + LLM rubric; Explain my mistake loop |
-| Missing RAG index | Clear UI warning; `python -m ingestion.ingest_pdf` (fixed package import) |
+| Missing RAG index | Clear UI warning; `python -m ingestion.ingest_pdf` |
 | Native inference crash (Windows) | Thread cap, lower `n_batch`, RAG unload before LLM, safe-mode retry |
 | Thermal throttling | Light model default; CPU-first inference |
 
 ---
 
-## 11. Judge Reproduction Checklist
+## 11. Reproduction Checklist
 
 | Step | Action |
 |------|--------|
-| 1 | Clone repo at submitted commit hash |
+| 1 | Clone the repository |
 | 2 | `pip install -r requirements.txt` |
 | 3 | **`bash download_model.sh`** — fetches `model/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf` |
 | 4 | `streamlit run app.py` — Mode: **Offline**, Model: **Light** |
 | 5 | Try sample prompts; open **CBC-Learn**; test **Explain my mistake** |
 | 6 | Optional RAG: add PDFs → `python -m ingestion.ingest_pdf` → enable RAG checkbox |
 | 7 | `python benchmark.py --tier light` for telemetry output |
-| 8 | Optional: `adtc-profiler run --submission . --mode participant --output submission.json --skip-accuracy` |
-
-**Before DevPost submit:** replace `FILL_TEAM_ID_FROM_ADTF_PORTAL` in `metadata.json`.
 
 **Model manifest:** `models/MODEL_MANIFEST.json` · **Full instructions:** `models/README.md`
-
-**Demo video and screenshots:** Offline Light-tier chat, CBC-Learn, Explain my mistake, and optional RAG (submitted via DevPost).
 
 ---
 
 ## 12. References
 
-- [Africa Deep Tech Challenge 2026](https://africadeeptech.org/challenge-2026)
-- [ADTC 2026 submission template](https://github.com/Africa-Deep-Tech-Foundation/adtc-2026-submission-template)
-- [ADTC profiler](https://github.com/Africa-Deep-Tech-Foundation/adtc-profiler)
-- llama.cpp / GGUF — required ADTC runtime format
-- Kenya Competency-Based Curriculum (CBC) — pedagogical alignment for scenario questions
+- llama.cpp / GGUF — on-device inference runtime
+- Competency-Based Curriculum (CBC) — pedagogical alignment for scenario questions
+- FAISS — vector similarity search
+- sentence-transformers — embedding models for RAG
 
 ---
 

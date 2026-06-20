@@ -1,4 +1,4 @@
-# ADTC model download (Windows). Linux judges use: bash download_model.sh
+# Download default model weights (Windows). Linux/macOS: bash download_model.sh
 $ErrorActionPreference = "Stop"
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ModelDir = Join-Path $Here "model"
@@ -16,7 +16,7 @@ if (-not (Test-Path $ModelFile)) {
     Move-Item -Force "$ModelFile.part" $ModelFile
     Write-Host "done: $ModelFile"
 } else {
-    Write-Host "ADTC model already present at $ModelFile"
+    Write-Host "Model already present at $ModelFile"
 }
 
 if (-not (Test-Path $AppFile) -or ((Get-FileHash $ModelFile).Hash -ne (Get-FileHash $AppFile).Hash)) {

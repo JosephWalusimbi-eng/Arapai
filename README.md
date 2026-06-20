@@ -4,7 +4,7 @@
 
 Arapai is named after **Arapai, a community in Soroti District, Uganda**, where the project was first demoed. Even with data bundles loaded, internet access is often slow or unusable except in a few spots with decent signal. The goal is simple: **AI that schools can own, run, and trust offline** — without the internet as a constraint.
 
-Built for the [Africa Deep Tech Challenge 2026 — Laptop LLM Challenge](https://africadeeptech.org/challenge-2026). Full technical report: [`REPORT.md`](REPORT.md) · DevPost story: [`ABOUT.md`](ABOUT.md)
+Named after **Arapai, Soroti District, Uganda** — where the first demo took place. Full technical report: [`REPORT.md`](REPORT.md) · Project story: [`ABOUT.md`](ABOUT.md)
 
 ---
 
@@ -19,7 +19,7 @@ Built for the [Africa Deep Tech Challenge 2026 — Laptop LLM Challenge](https:/
 | **Optional RAG** | FAISS + sentence embeddings over teacher PDFs |
 | **Sample prompts** | Three demo-ready prompts for quick testing |
 
-Peak memory on the Light tier: **~703 MB** (under the ADTC 7 GB ceiling).
+Peak memory on the Light tier: **~703 MB** (comfortably under a 7 GB school-laptop budget).
 
 ---
 
@@ -37,7 +37,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Download the audit model (not in Git)
+### 2. Download the default model (not in Git)
 
 ```bash
 bash download_model.sh
@@ -74,13 +74,13 @@ python benchmark.py --tier light
 
 ## Optional: GPU acceleration
 
-On NVIDIA + CUDA, see `howtorun.txt` and `requirements-gpu.txt`. CPU-only is the default and ADTC audit path.
+On NVIDIA + CUDA, see `howtorun.txt` and `requirements-gpu.txt`. CPU-only is the default offline path.
 
 ---
 
 ## Online mode (dev / comparison only)
 
-**Online (Gemma 1.1)** uses Hugging Face Inference API — requires `HF_TOKEN`. Not used for ADTC offline audit.
+**Online (Gemma 1.1)** uses Hugging Face Inference API — requires `HF_TOKEN`. Not used for normal offline deployment.
 
 ---
 
@@ -88,27 +88,27 @@ On NVIDIA + CUDA, see `howtorun.txt` and `requirements-gpu.txt`. CPU-only is the
 
 ```
 app.py              Streamlit UI (chat + CBC-Learn)
-benchmark.py        ADTC telemetry CLI
+benchmark.py        Inference telemetry CLI
 backend/            LLM, tutor, math, RAG, CBC engines
 ingestion/          PDF chunking and FAISS index build
 data/               CBC questions, PDFs, embeddings
 models/             GGUF tiers (download separately)
-metadata.json       ADTC submission metadata
-download_model.sh   ADTC-required model fetch script
+metadata.json       Project metadata and test prompts
+download_model.sh   Model download script
 ```
 
 ---
 
-## ADTC submission files
+## Key documentation
 
 | File | Purpose |
 |------|---------|
-| `metadata.json` | Team metadata and test prompts |
-| `REPORT.md` | Judge-ready technical report |
-| `download_model.sh` | Fetches audit GGUF to `model/` |
-| `ABOUT.md` | DevPost project story |
+| `metadata.json` | Project metadata and reference test prompts |
+| `REPORT.md` | Technical report |
+| `download_model.sh` | Fetches default GGUF to `model/` |
+| `ABOUT.md` | Project story and motivation |
 
-Before DevPost submit: fill `team_id` in `metadata.json`.
+Fill `team_id` in `metadata.json` if required for your submission platform.
 
 ---
 
@@ -120,6 +120,6 @@ Light and Dark themes are available in the sidebar (warm cream / cocoa palettes)
 
 ## License & context
 
-Open-source submission for ADTC 2026. Competency-Based Curriculum (CBC) scenario content aligns with scenario-style school assessment. English UI today; additional local languages planned.
+Open-source offline education tutor. Competency-Based Curriculum (CBC) scenario content aligns with scenario-style school assessment. English UI today; additional local languages planned.
 
 *Arapai — offline AI that schools can own, run, and trust.*

@@ -1,4 +1,4 @@
-"""Process memory tracking for ADTC efficiency scoring (S_eff)."""
+"""Process memory tracking for peak RSS and efficiency metrics."""
 import os
 
 try:

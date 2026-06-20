@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-ADTC benchmark CLI — measures tokens/sec, TTFT, peak RSS, latency.
+Inference benchmark CLI — measures tokens/sec, TTFT, peak RSS, latency.
 
 Usage (from project root, venv active):
     python benchmark.py
@@ -33,7 +33,7 @@ def run_math_check():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Arapai ADTC inference benchmark")
+    parser = argparse.ArgumentParser(description="Arapai inference benchmark")
     parser.add_argument("--tier", default="light", choices=["light", "standard", "advanced"])
     parser.add_argument("--max-tokens", type=int, default=256)
     parser.add_argument("--no-stream", action="store_true")
@@ -59,7 +59,7 @@ def main():
     results["math_engine"] = math
     results["memory"] = memory_summary()
 
-    print("\n=== Arapai ADTC Benchmark ===")
+    print("\n=== Arapai Benchmark ===")
     print(f"Model tier:          {results['model_tier']}")
     print(f"Time to first token: {results['time_to_first_token_s']} s")
     print(f"Total latency:       {results['total_latency_s']} s")

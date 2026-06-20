@@ -1,5 +1,5 @@
 {
-  "team_id": "FILL_TEAM_ID_FROM_ADTF_PORTAL",
+  "team_id": "FILL_TEAM_ID",
   "domain": "math_scientific_reasoning",
   "language_scope": ["en"],
   "african_alpha_claim": false,

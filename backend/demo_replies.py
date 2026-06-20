@@ -1,4 +1,4 @@
-"""Curated replies for ADTC sample prompts — reliable on the Light tier."""
+"""Curated replies for sample prompts — reliable on the Light tier."""
 
 SAMPLE_PROMPTS = [
     "What is (48 / 6) + 7 * 2? Then explain order of operations in one sentence.",
@@ -57,7 +57,7 @@ _DEMO_REPLIES = {
 
 
 def get_curated_demo_reply(user_text, level):
-    """Return a vetted reply for known ADTC demo prompts, or None."""
+    """Return a vetted reply for known sample prompts, or None."""
     key = (user_text or "").strip()
     replies = _DEMO_REPLIES.get(key)
     if not replies:

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ADTC 2026 — download model weights (required by submission template).
+# Download default model weights for Arapai (matches metadata.json _runtime.model_path).
 #
 # Rules:
 # - Idempotent (safe to run multiple times).
@@ -21,7 +21,7 @@ mkdir -p "$MODEL_DIR"
 mkdir -p "$(dirname "$APP_FILE")"
 
 if [[ -f "$MODEL_FILE" ]]; then
-  echo "ADTC model already present at $MODEL_FILE"
+  echo "Model already present at $MODEL_FILE"
 else
   echo "Downloading $MODEL_URL"
   echo "  -> $MODEL_FILE (~637 MB)"
@@ -44,4 +44,4 @@ if [[ ! -f "$APP_FILE" ]] || ! cmp -s "$MODEL_FILE" "$APP_FILE"; then
   echo "copied to app path: $APP_FILE"
 fi
 
-echo "Ready for ADTC profiler and: streamlit run app.py"
+echo "Ready. Run: streamlit run app.py"

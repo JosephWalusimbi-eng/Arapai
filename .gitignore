@@ -52,12 +52,12 @@ _pitch_extract/
 # AI / Machine Learning
 # -----------------------------
 
-# ADTC submission template — model weights (not in Git)
+# Default bundled model weights (not in Git)
 model/
 model/**/*.gguf
 *.gguf
 
-# App model tiers (optional; same weights as ADTC path for Light tier)
+# App model tiers (optional; same weights as model/ path for Light tier)
 models/**/model.gguf
 models/**/*.gguf
 !models/README.md

@@ -3,7 +3,7 @@
 Download GGUF model weights for Arapai (not stored in Git).
 
 Usage (from project root, venv active):
-    python scripts/download_models.py              # audit default: light tier only
+    python scripts/download_models.py              # default: light tier only
     python scripts/download_models.py --tier all     # light + standard + advanced
     python scripts/download_models.py --tier standard
 """
@@ -57,7 +57,7 @@ def main():
         "--tier",
         default="light",
         choices=["light", "standard", "advanced", "all"],
-        help="Which tier to download (default: light — required for ADTC audit)",
+        help="Which tier to download (default: light — recommended for offline demos)",
     )
     args = parser.parse_args()
 
@@ -77,15 +77,15 @@ def main():
         dest = os.path.join(PROJECT_ROOT, spec["dest_path"])
         download_file(spec["direct_url"], dest, spec["display_name"])
         if tier == "light":
-            adtc_dest = os.path.join(PROJECT_ROOT, "model", "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf")
-            if not os.path.exists(adtc_dest) or os.path.getsize(adtc_dest) != os.path.getsize(dest):
-                os.makedirs(os.path.dirname(adtc_dest), exist_ok=True)
+            bundled_dest = os.path.join(PROJECT_ROOT, "model", "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf")
+            if not os.path.exists(bundled_dest) or os.path.getsize(bundled_dest) != os.path.getsize(dest):
+                os.makedirs(os.path.dirname(bundled_dest), exist_ok=True)
                 import shutil
-                shutil.copy2(dest, adtc_dest)
-                print(f"[sync] ADTC path: {adtc_dest}")
+                shutil.copy2(dest, bundled_dest)
+                print(f"[sync] metadata path: {bundled_dest}")
 
-    audit = manifest["audit_file"]
-    print(f"\nAudit default model path: {audit}")
+    default_model = manifest["audit_file"]
+    print(f"\nDefault model path: {default_model}")
     print("Run: streamlit run app.py  (Mode: Offline, Model: Light)")
 
 
