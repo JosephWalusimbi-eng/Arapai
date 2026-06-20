@@ -1,0 +1,76 @@
+{
+  "schema_version": "1.0.0",
+  "profiler_version": "adtc-profiler 0.1.0",
+  "submission": {
+    "team_id": "FILL_TEAM_ID",
+    "domain": "math_scientific_reasoning",
+    "language_scope": [
+      "en"
+    ],
+    "african_alpha_claim": false,
+    "budget_laptop_claim": true,
+    "submitter": {
+      "name": "Joseph Walusimbi",
+      "email": "mrjosephwalusimbi@gmail.com",
+      "github_handle": "JosephWalusimbi-eng"
+    },
+    "cross_disciplinary_pairing": {
+      "discipline": "education",
+      "load_bearing": true,
+      "description": "Named for Arapai, Soroti District, Uganda (first demo site with severe connectivity limits). On-device LLM tutoring with FAISS RAG over local PDFs, CBC scenario assessment, and a safe numeric math engine — AI schools can own, run, and trust offline."
+    },
+    "test_prompts": [
+      {
+        "prompt_id": "tp_001",
+        "prompt": "A student connects a thin, long wire in a circuit and notices the bulb is dimmer than when using a short, thick wire. Explain why this happens."
+      },
+      {
+        "prompt_id": "tp_002",
+        "prompt": "What is (48 / 6) + 7 * 2? Then explain in one sentence what order of operations means."
+      }
+    ],
+    "model": {
+      "name": "TinyLlama-1.1B-Chat-Q4_K_M",
+      "runtime": "llama.cpp",
+      "quantization": "GGUF Q4_K_M",
+      "parameters_estimate": "1.1B",
+      "packaging": "binary_bundle"
+    }
+  },
+  "environment": {
+    "measured_on": "participant_laptop",
+    "cpu_model": "Intel64 Family 6 Model 142 Stepping 10, GenuineIntel",
+    "ram_gb": 19.9,
+    "gpu": "none",
+    "os": "Windows-10-10.0.26200-SP0"
+  },
+  "throughput": {
+    "tokens_per_second_generation": 19.91,
+    "first_token_latency_ms": 8246.61,
+    "prompt_tokens": 512,
+    "generated_tokens": 128
+  },
+  "memory": {
+    "peak_rss_mb": 1177.28,
+    "steady_state_rss_mb": 1123.77,
+    "peak_vms_mb": 604.91
+  },
+  "accuracy": [],
+  "cpu_thermal": {
+    "cpu_percent_p99": 95.1,
+    "core_temp_c_peak": null,
+    "throttled": false
+  },
+  "reproducibility": {
+    "git_commit_sha": "a422a18f7608",
+    "docker_image_digest": "unknown",
+    "random_seed": 42
+  },
+  "model_info": {
+    "params_count": null,
+    "context_length": 2048,
+    "architecture": "llama",
+    "claimed_params_estimate": "1.1B",
+    "params_match": true
+  }
+}

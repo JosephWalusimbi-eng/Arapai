@@ -13,7 +13,7 @@ We built this as an on-device tutor on an ordinary **8 GB laptop**, with no clou
 Arapai is an offline AI education tutor with four main capabilities:
 
 1. **Leveled chat tutoring** — Students choose explanation depth (Basic → Technical). The tutor adjusts length, jargon, and structure.
-2. **Safe math** — Arithmetic is solved deterministically (no `eval()`), including mixed prompts like “calculate, then explain.” For \((48 \div 6) + 7 \times 2\), the engine returns \(22\) using standard precedence.
+2. **Safe math** — Arithmetic is solved deterministically (no `eval()`), including mixed prompts like “calculate, then explain.” For `(48 ÷ 6) + 7 × 2`, the engine returns **22** using standard precedence.
 3. **CBC-Learn mode** — Scenario questions (e.g. electricity, open circuits) with feedback and **“Explain my mistake”** after wrong answers.
 4. **Optional RAG** — Teachers add PDF notes; Arapai retrieves relevant excerpts with FAISS and grounds answers in local material.
 
@@ -37,13 +37,7 @@ We used a modular Python backend and a Streamlit front end:
 
 **RAG path:** PDF → chunk (500 chars, 50 overlap) → embed → FAISS index.
 
-**Scientific example (Prompt 2):** For a long thin vs. short thick wire, resistance scales roughly as
-
-\[
-R \propto \frac{L}{A}
-\]
-
-longer/thinner wire → higher \(R\) → lower current \(I = V/R\) → dimmer bulb.
+**Scientific example (Prompt 2):** For a long thin vs. short thick wire, resistance scales roughly as **R ∝ L/A** — longer/thinner wire → higher R → lower current (I = V/R) → dimmer bulb.
 
 We also built `benchmark.py` to measure tokens/sec, time-to-first-token, and peak RSS so we can track efficiency, speed, and answer quality on real hardware.
 
