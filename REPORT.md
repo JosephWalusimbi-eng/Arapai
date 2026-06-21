@@ -1,4 +1,4 @@
-# Technical Report — Arapai: Offline AI Education Tutor
+# Technical Report - Arapai: Offline AI Education Tutor
 
 **Team ID:** Perry
 **Domain:** math_scientific_reasoning
