@@ -432,13 +432,4 @@ Output is written to `benchmark_results.json`. Example from the latest reproduci
 
 ---
 
-## 12. References
-
-- llama.cpp / GGUF — on-device inference runtime
-- Competency-Based Curriculum (CBC) — pedagogical alignment for scenario questions
-- FAISS — vector similarity search
-- sentence-transformers — embedding models for RAG
-
----
-
-*Arapai — Offline AI that schools can own, run, and trust.*
+*Arapai - Offline AI that schools can own, run, and trust.*
