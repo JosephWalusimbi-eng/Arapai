@@ -1,4 +1,4 @@
-# Arapai — Offline AI Education Tutor
+# Arapai - Offline AI Education Tutor
 
 **On-device AI tutoring for schools — no cloud required.**
 
@@ -72,17 +72,6 @@ python benchmark.py --tier light
 
 ---
 
-## Optional: GPU acceleration
-
-On NVIDIA + CUDA, see `howtorun.txt` and `requirements-gpu.txt`. CPU-only is the default offline path.
-
----
-
-## Online mode (dev / comparison only)
-
-**Online (Gemma 1.1)** uses Hugging Face Inference API — requires `HF_TOKEN`. Not used for normal offline deployment.
-
----
 
 ## Project layout
 
@@ -108,8 +97,6 @@ download_model.sh   Model download script
 | `download_model.sh` | Fetches default GGUF to `model/` |
 | `ABOUT.md` | Project story and motivation |
 
-Fill `team_id` in `metadata.json` if required for your submission platform.
-
 ---
 
 ## Themes
@@ -122,4 +109,4 @@ Light and Dark themes are available in the sidebar (warm cream / cocoa palettes)
 
 Open-source offline education tutor. Competency-Based Curriculum (CBC) scenario content aligns with scenario-style school assessment. English UI today; additional local languages planned.
 
-*Arapai — offline AI that schools can own, run, and trust.*
+*Arapai - offline AI that schools can own, run, and trust.*

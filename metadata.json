@@ -1,8 +1,8 @@
 {
-  "team_id": "FILL_TEAM_ID",
+  "team_id": "Perry",
   "domain": "math_scientific_reasoning",
-  "language_scope": ["en"],
-  "african_alpha_claim": false,
+  "language_scope": ["en", "sw"],
+  "african_alpha_claim": true,
   "budget_laptop_claim": true,
   "submitter": {
     "name": "Joseph Walusimbi",
@@ -12,16 +12,16 @@
   "cross_disciplinary_pairing": {
     "discipline": "education",
     "load_bearing": true,
-    "description": "Named for Arapai, Soroti District, Uganda (first demo site with severe connectivity limits). On-device LLM tutoring with FAISS RAG over local PDFs, CBC scenario assessment, and a safe numeric math engine — AI schools can own, run, and trust offline."
+    "description": "Offline AI tutor for schools in low-connectivity environments, combining local curriculum materials with structured learning and interactive explanations."
   },
   "test_prompts": [
     {
       "prompt_id": "tp_001",
-      "prompt": "A student connects a thin, long wire in a circuit and notices the bulb is dimmer than when using a short, thick wire. Explain why this happens."
+      "prompt": "A student connects a thin, long wire in a circuit and notices the bulb is dimmer than when using a short, thick wire. Explain why this happens at a lower secondary level."
     },
     {
       "prompt_id": "tp_002",
-      "prompt": "What is (48 / 6) + 7 * 2? Then explain in one sentence what order of operations means."
+      "prompt": "What is (48 / 6) + 7 * 2? Then explain in one simple sentence what order of operations means."
     }
   ],
   "model": {
