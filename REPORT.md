@@ -1,7 +1,9 @@
 # Technical Report - Arapai: Offline AI Education Tutor
 
-**Team ID:** Perry
+**Team ID:** Perry Mungudit
+
 **Domain:** math_scientific_reasoning
+
 **Model:** TinyLlama-1.1B-Chat-Q4_K_M
 
 ---
