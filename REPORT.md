@@ -1,6 +1,6 @@
 # Technical Report - Arapai: Offline AI Education Tutor
 
-**Team ID:** Perry Mungudit
+**Team ID:** ArapAI
 
 **Domain:** math_scientific_reasoning
 
